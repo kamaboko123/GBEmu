@@ -1,0 +1,18 @@
+test:
+  - name: ld hl, u16
+    rom: gb/0x21.gb
+    regs: 
+      hl: 0x55aa
+  - name: ld sp, u16
+    rom: gb/0x31.gb
+    regs: 
+      sp: 0x55aa
+  - name: ld sp, u16
+    rom: gb/0x3e.gb
+    regs: 
+      a: 0x55
+  - name: ld (0xff00 + u8), A
+    rom: gb/0xe0_and_0xf0.gb
+    regs:
+      a: 0x55
+  
