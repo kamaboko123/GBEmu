@@ -23,7 +23,7 @@ test: all
 	cd test; make run;
 
 run: all
-	./$(TARGET) ./cpu_instrs.gb
+	./$(TARGET) test/gb/0xe0_and_0xf0.gb
 
 debug: all
 	./$(TARGET) test/gb/0xe0_and_0xf0.gb --regs
