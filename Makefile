@@ -2,7 +2,7 @@
 
 CC = g++
 INCLUDE = -I include
-CFLAGS = -std=c++11 -g -Wall -O0 `pkg-config.exe --libs sdl2 | sed -e "s/-mwindows//g"` `pkg-config --cflags gtk+-3.0` 
+CFLAGS = -std=c++20 -g -Wall -O0 `pkg-config.exe --libs sdl2 | sed -e "s/-mwindows//g"` `pkg-config --cflags gtk+-3.0`  
 ifeq ($(OS),Windows_NT)
 LDFLAGS = `pkg-config.exe --libs sdl2 | sed -e "s/-mwindows//g"` `pkg-config --libs gtk+-3.0`
 else

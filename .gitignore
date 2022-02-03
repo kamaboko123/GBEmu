@@ -4,3 +4,4 @@ test/gb
 test/obj
 *.gb
 tmp/
+.vscode/

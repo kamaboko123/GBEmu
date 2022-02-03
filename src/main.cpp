@@ -1,4 +1,5 @@
 #include "gbemu.hpp"
+#include <thread>
 
 int main(int argc, char *argv[]) {
     gbemu_argc = argc;
@@ -18,7 +19,9 @@ int main(int argc, char *argv[]) {
 
     GBEmu *emu = new GBEmu();
 
-    emu->run(argv[1], dump_regs, 0x200);
+    std::thread th_a(GBEmu::run, emu, argv[1], dump_regs, 0x200);
+    th_a.join();
+    
     delete emu;
     return 0;
 }
