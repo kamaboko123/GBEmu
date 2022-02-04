@@ -31,6 +31,25 @@ void GBEmu::_init() {
     ram = new uint8_t[MEM_SIZE]();
     rom = new uint8_t[ROM_SIZE]();
 
+    //PPUの各モード間のクロック数計算
+    double clk_rate = CLOCK_RATE;
+    double clk_sec;
+    //1クロックあたりの秒数
+    clk_sec = (double)1.0f / clk_rate;
+    //各モードを処理に要する秒数を、1クロックあたりの秒数で割って、各モードの処理に必要なクロックを求める
+    //ここで求めたクロック数を基準にPPUではモードを切り替えていく
+    PPU_MODE_CLOCKS[PPU_MODE_0] = (uint16_t)(48.6e-6 / clk_sec);
+    PPU_MODE_CLOCKS[PPU_MODE_1] = (uint16_t)(1.08e-3 / clk_sec);
+    PPU_MODE_CLOCKS[PPU_MODE_2] = (uint16_t)(19.0e-6 / clk_sec);
+    PPU_MODE_CLOCKS[PPU_MODE_3] = (uint16_t)(41.0e-6 / clk_sec);
+    PPU_MODE_LINE_CLOCK = PPU_MODE_CLOCKS[PPU_MODE_2] + PPU_MODE_CLOCKS[PPU_MODE_3] + PPU_MODE_CLOCKS[PPU_MODE_0];
+
+    printf("[PPU MODE CLOCKS]\n");
+    printf("sec/clk: %.30lf sec/clk\n", clk_sec);
+    printf("MODE0: %d clk\n", PPU_MODE_CLOCKS[PPU_MODE_0]);
+    printf("MODE1: %d clk\n", PPU_MODE_CLOCKS[PPU_MODE_1]);
+    printf("MODE2: %d clk\n", PPU_MODE_CLOCKS[PPU_MODE_2]);
+    printf("MODE3: %d clk\n", PPU_MODE_CLOCKS[PPU_MODE_3]);
     //_sdlinit();
 }
 
@@ -197,6 +216,8 @@ void GBEmu::run(const char rom_file_path[], bool flg_dump_regs, uint16_t exit_pc
 
     printf("\n");
 
+    end = false;
+
     // initialize ragisters
     reg.af = 0x01b0;
     reg.bc = 0x0013;
@@ -237,171 +258,18 @@ void GBEmu::run(const char rom_file_path[], bool flg_dump_regs, uint16_t exit_pc
     ram[0xFF4B] = 0x00;  // WX
     ram[0xFFFF] = 0x00;  // IE
 
-    ram[0xFF44] = 0x01;
+    ppu_mode = 2;
+    ppu_line = 0;
 
-    uint16_t addr;
-    int8_t n, m;
-    uint8_t un, um, ul;
-
-    while(true){
-        printf("0x%04x: 0x%02x\n", reg.pc, read_mem(reg.pc));
-        if(exit_pc != 0 && reg.pc == exit_pc) break;
-        switch(read_mem(reg.pc)){
-            case 0x00: //nop
-                reg.pc += 1;
-            break;
-            case 0x01: //ld bc, u16
-                reg.bc = read_mem_u16(reg.pc + 1);
-                reg.pc += 3;
-            break;
-            case 0x03: //inc bc
-                reg.bc++;
-                reg.pc += 1;
-            break;
-            case 0x18: //jr u8
-                n = read_mem(reg.pc + 1);
-                /*
-                単純にpcに次のu8の値を足すだけかと思ったが、次の命令のアドレスを基準に足すらしい？
-                例えば以下の場合、次のu8が格納されているアドレスを基準に加算するのではなく、
-                次の命令(0x03のnop)に加算し、0x07になる。
-                0x01: 0x18 ; jr 0x04 -> (0x03 + 4)=0x07
-                0x02: 0x04 
-                0x03: 0x00 ; nop
-                */
-                reg.pc += 2;
-                reg.pc += n;
-            break;
-            case 0x20: //jr if not zero i8
-                n = read_mem(reg.pc + 1);
-                reg.pc += 2;
-                if(reg.flags.z != 1) reg.pc += n;
-            break;
-            case 0x21: //ld hl, u16
-                reg.hl = read_mem_u16(reg.pc + 1);
-                reg.pc += 3;
-            break;
-            case 0x23: //inc hl
-                reg.hl++;
-                reg.pc += 1;
-            break;
-            case 0x28: //jr z, i8
-                n = read_mem(reg.pc + 1);
-                reg.pc += 2;
-                if(reg.flags.z == 1){
-                    reg.pc += n;
-                }
-            break;
-            case 0x2a: //ld, a (hl)
-                reg.a = read_mem(reg.hl);
-                reg.pc += 1;
-            break;
-            case 0x31: //ld sp, u16
-                reg.sp = read_mem_u16(reg.pc + 1);
-                reg.pc += 3;
-            break;
-            case 0x3e: //ld A, u8
-                reg.a = read_mem(reg.pc + 1);
-                reg.pc += 2;
-            break;
-            case 0x78: //ld a, b
-                reg.a = reg.b;
-                reg.pc += 1;
-            break;
-            case 0x7c: //ld a, h
-                reg.a = reg.h;
-                reg.pc += 1;
-            break;
-            case 0x7d: //ld a, l
-                reg.a = reg.l;
-                reg.pc += 1;
-            break;
-            case 0xb1: //or c
-                printf("!!%x\n", reg.a);
-                reg.a |= reg.c;
-                printf("!!%x\n", reg.a);
-                reg.f = 0;
-                if(reg.a == 0x00){
-                    printf("!!!!!!!!!!!!!!!!!!\n");
-                    reg.flags.z = 1;
-                }
-                printf("!!%x\n", reg.flags.z);
-                reg.pc += 1;
-            break;
-            case 0xc3: //jmp
-                reg.pc = read_mem_u16(reg.pc + 1);
-            break;
-            case 0xc5: //push bc
-                push(reg.bc);
-                reg.pc += 1;
-            break;
-            case 0xc9: //ret
-                reg.pc = pop();
-            break;
-            case 0xcd: //call u16
-                push(reg.pc + 3); //store next instruction address
-                reg.pc = read_mem_u16(reg.pc + 1);
-            break;
-            case 0xe0: //ld (0xff00 + u8), A
-                write_mem(0xff00 + read_mem(reg.pc + 1), reg.a);
-                reg.pc += 2;
-            break;
-            case 0xe1: //pop hl
-                reg.hl = pop();
-                reg.pc += 1;
-            break;
-            case 0xe5: //push hl
-                push(reg.hl);
-                reg.pc += 1;
-            break;
-            case 0xea: //ld (u16), a
-                addr = read_mem_u16(reg.pc + 1);
-                write_mem(addr, reg.a);
-                reg.pc += 3;
-            break;
-            case 0xf0: //ld a, (0xff00 + u8)
-                un = read_mem(reg.pc + 1);
-                reg.a = read_mem(0xff00 + un);
-                reg.pc += 2;
-            break;
-            case 0xfe: //cp a, u8
-                un = read_mem(reg.pc + 1);
-                um = (reg.a & 0x8) >> 3; // bit 4
-                ul = ((reg.a - n) & 0x8) >> 3;
-                
-                reg.f = 0;
-                reg.flags.n = 1;
-                if(reg.a == un) reg.flags.z = 1;
-                if(reg.a < n) reg.flags.c = 1;
-                if(um != ul) reg.flags.h = 0; //TODO: わからん
-
-                reg.pc += 2;
-            break;
-            case 0xf1: //pop af
-                reg.af = pop();
-                reg.pc += 1;
-                reg.f = 0;
-
-                //TODO: POPのときのフラグの仕様わからん
-                if(reg.a == 0) reg.flags.z = 0;
-            break;
-            case 0xf3: //di
-                write_mem(0xffff, 0x00);
-                reg.pc += 1;
-            break;
-            case 0xf5: //push af
-                push(reg.af);
-                reg.pc += 1;
-            break;
-            default:
-                goto _end;
-            break;
-        }
+    while(!end){
+        cpu_step();
+        ppu_step();
     }
-_end:
+
     if(flg_dump_regs){
         dump_regs();
+        printf("LY: %d\n", read_mem(IO_REG::LY));
     }
-    return;
 
     /*
     while(true){
