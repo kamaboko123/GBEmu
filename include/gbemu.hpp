@@ -13,7 +13,8 @@
 
 #include "clib.hpp"
 #include "color.hpp"
-#define CLOCK_RATE 4194304.0f
+//#define CLOCK_RATE 4194304.0f
+#define CLOCK_RATE 4200000.0f
 
 #define MEM_SIZE 0xff * 0xff
 #define ROM_SIZE 1024 * 1024

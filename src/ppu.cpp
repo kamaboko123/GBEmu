@@ -6,7 +6,7 @@ void GBEmu::ppu_step(void){
         https://w.atwiki.jp/gbspec/pages/21.html
         http://bgb.bircd.org/pandocs.htm
     */
-    printf("LY: %d\n", read_mem(IO_REG::LY));
+    printf("PPU_MODE: %d\nLY: %d\n", ppu_mode, read_mem(IO_REG::LY));
     ppu_mode_clock += last_instr_clock;
 
     switch(ppu_mode){
@@ -31,7 +31,7 @@ void GBEmu::ppu_step(void){
                 
                 //143行描画したらv-blankへ
                 if(ppu_line == 143){
-                    ppu_mode = PPU_MODE_0;
+                    ppu_mode = PPU_MODE_1;
                 }
             }
         break;
