@@ -5,26 +5,15 @@ char **gbemu_argv;
 
 GBPalette GBEmu::palette;
 
-GBEmu::GBEmu() {
-    _init();
-
-    /*
-    GtkWidget *w;
-    gtk_init(&gbemu_argc, &gbemu_argv);
-    w = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-    gtk_window_set_title(GTK_WINDOW(w), "GBEmu");
-    gtk_widget_show_all(w);
-    gtk_main();
-    */
-}
+GBEmu::GBEmu() { _init(); }
 GBEmu::~GBEmu() {
     delete[] ram;
     delete[] rom;
 
-    //SDL_DestroyRenderer(renderer);
-    //SDL_DestroyWindow(window);
-    //SDL_Delay(500);
-    //SDL_Quit();
+    // SDL_DestroyRenderer(renderer);
+    // SDL_DestroyWindow(window);
+    // SDL_Delay(500);
+    // SDL_Quit();
 }
 
 void GBEmu::_init() {
@@ -32,10 +21,10 @@ void GBEmu::_init() {
     rom = new uint8_t[ROM_SIZE]();
     memset(ram, 0, sizeof(MEM_SIZE));
 
-    //PPUの各モード間のクロック数計算
+    // PPUの各モード間のクロック数計算
     double clk_rate = CLOCK_RATE;
     double clk_sec;
-    //1クロックあたりの秒数
+    // 1クロックあたりの秒数
     clk_sec = (double)1.0f / clk_rate;
     //各モードを処理に要する秒数を、1クロックあたりの秒数で割って、各モードの処理に必要なクロックを求める
     //ここで求めたクロック数を基準にPPUではモードを切り替えていく
@@ -43,7 +32,9 @@ void GBEmu::_init() {
     PPU_MODE_CLOCKS[PPU_MODE_1] = (uint16_t)(1.08e-3 / clk_sec);
     PPU_MODE_CLOCKS[PPU_MODE_2] = (uint16_t)(19.0e-6 / clk_sec);
     PPU_MODE_CLOCKS[PPU_MODE_3] = (uint16_t)(41.0e-6 / clk_sec);
-    PPU_MODE_LINE_CLOCK = PPU_MODE_CLOCKS[PPU_MODE_2] + PPU_MODE_CLOCKS[PPU_MODE_3] + PPU_MODE_CLOCKS[PPU_MODE_0];
+    PPU_MODE_LINE_CLOCK = PPU_MODE_CLOCKS[PPU_MODE_2] +
+                          PPU_MODE_CLOCKS[PPU_MODE_3] +
+                          PPU_MODE_CLOCKS[PPU_MODE_0];
 
     printf("[PPU MODE CLOCKS]\n");
     printf("sec/clk: %.30lf sec/clk\n", clk_sec);
@@ -51,33 +42,23 @@ void GBEmu::_init() {
     printf("MODE1: %d clk\n", PPU_MODE_CLOCKS[PPU_MODE_1]);
     printf("MODE2: %d clk\n", PPU_MODE_CLOCKS[PPU_MODE_2]);
     printf("MODE3: %d clk\n", PPU_MODE_CLOCKS[PPU_MODE_3]);
-    
+
     _sdlinit();
-    init_win_ppu_tile();
 }
 
-void GBEmu::_sdlinit(){
-    scale = 2;    
+void GBEmu::_sdlinit() {
     SDL_Init(SDL_INIT_EVERYTHING);
+    init_win_ppu_tile();
+    init_win_debug_gui();
+
     /*
-    window = SDL_CreateWindow("GBEmu", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 160*scale, 144*scale, 0);
-    renderer = SDL_CreateRenderer(window, -1, 0);
+    window = SDL_CreateWindow("GBEmu", SDL_WINDOWPOS_UNDEFINED,
+    SDL_WINDOWPOS_UNDEFINED, 160*scale, 144*scale, 0); renderer =
+    SDL_CreateRenderer(window, -1, 0);
     */
 }
 
-void GBEmu::display() {
-    SDL_RenderSetScale(renderer, scale, scale);
-    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-    SDL_RenderClear(renderer);
-    SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
-    for(int i = 0; i < 160/2; i++){
-        SDL_RenderDrawPoint(renderer, i, 0);
-        SDL_RenderDrawPoint(renderer, i, 1);
-    }
-    SDL_RenderPresent(renderer);
-}
-
-void GBEmu::dump_regs(){
+void GBEmu::dump_regs() {
     printf("[registers:start]\n");
     printf("af: 0x%04x\n", reg.af);
     printf("bc: 0x%04x\n", reg.bc);
@@ -107,7 +88,8 @@ void GBEmu::dump_rom(uint32_t from, uint32_t bytes) {
     }
 }
 
-void GBEmu::run(const char rom_file_path[], bool flg_dump_regs, uint16_t exit_pc) {
+void GBEmu::run(const char rom_file_path[], bool flg_dump_regs,
+                uint16_t exit_pc) {
     end = false;
     reg.pc = 0x100;
     ppu_mode = 2;
@@ -196,8 +178,6 @@ void GBEmu::run(const char rom_file_path[], bool flg_dump_regs, uint16_t exit_pc
     ram[0x810e] = 0x00;
     ram[0x810f] = 0x00;
 
-
-
     // initialize ragisters
     reg.af = 0x01b0;
     reg.bc = 0x0013;
@@ -240,28 +220,34 @@ void GBEmu::run(const char rom_file_path[], bool flg_dump_regs, uint16_t exit_pc
 
     main_loop();
 
-    if(flg_dump_regs){
+    if (flg_dump_regs) {
         dump_regs();
-
     }
-    
+
     SDL_Delay(50);
     SDL_Quit();
 }
 
-void GBEmu::main_loop(void){
-    while(!end){
+void GBEmu::main_loop(void) {
+    while (!end) {
         sdl_event();
         cpu_step();
         ppu_step();
+        display_win_debug_gui();
     }
 }
 
-void GBEmu::sdl_event(void){
+void GBEmu::sdl_event(void) {
     SDL_Event e;
-    while(SDL_PollEvent(&e)) {
+    while (SDL_PollEvent(&e)) {
+        ImGui_ImplSDL2_ProcessEvent(&e);
         if (e.type == SDL_QUIT) {
             end = true;
+        }
+        if (e.type == SDL_WINDOWEVENT && e.window.event == SDL_WINDOWEVENT_CLOSE) {
+            if (e.window.windowID == SDL_GetWindowID(win_ppu_tile) || e.window.windowID == SDL_GetWindowID(win_debug_gui)) {
+                end = true;
+            }
         }
     }
 }

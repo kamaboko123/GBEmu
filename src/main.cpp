@@ -18,6 +18,7 @@ int main(int argc, char *argv[]) {
 
     GBEmu *emu = new GBEmu();
     emu->run(argv[1], dump_regs, 0x200);
+    //std::thread t(GBEmu::run, emu, argv[1], dump_regs, 0x200);
     
     delete emu;
     return 0;

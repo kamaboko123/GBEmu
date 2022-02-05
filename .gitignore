@@ -5,3 +5,4 @@ test/obj
 *.gb
 tmp/
 .vscode/
+imgui.ini

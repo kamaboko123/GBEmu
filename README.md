@@ -8,5 +8,6 @@
     - Make
     - SDL2
         - `mingw-w64-x86_64-SDL2`
-    - GTK
-        - `mingw-w64-x86_64-gtk3`
+- Dependent libraries
+    - [imgui](https://github.com/ocornut/imgui)
+        - include pathの関係でMSYSに合わせて一部修正
