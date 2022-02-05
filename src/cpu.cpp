@@ -10,7 +10,7 @@ void GBEmu::cpu_step(){
     int8_t i8a, i8b;
     uint8_t u8a, u8b, u8c;
  
-    printf("0x%04x: 0x%02x\n", reg.pc, read_mem(reg.pc));
+    //printf("0x%04x: 0x%02x\n", reg.pc, read_mem(reg.pc));
     switch(read_mem(reg.pc)){
         case 0x00: //nop
             reg.pc += 1;
@@ -192,7 +192,7 @@ void GBEmu::cpu_step(){
             last_instr_clock = 8;
         break;
         default:
-            end = true;
+            //end = true;
         break;
     }
 }

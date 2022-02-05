@@ -30,6 +30,7 @@ GBEmu::~GBEmu() {
 void GBEmu::_init() {
     ram = new uint8_t[MEM_SIZE]();
     rom = new uint8_t[ROM_SIZE]();
+    memset(ram, 0, sizeof(MEM_SIZE));
 
     //PPUの各モード間のクロック数計算
     double clk_rate = CLOCK_RATE;
@@ -50,15 +51,18 @@ void GBEmu::_init() {
     printf("MODE1: %d clk\n", PPU_MODE_CLOCKS[PPU_MODE_1]);
     printf("MODE2: %d clk\n", PPU_MODE_CLOCKS[PPU_MODE_2]);
     printf("MODE3: %d clk\n", PPU_MODE_CLOCKS[PPU_MODE_3]);
-    //_sdlinit();
+    
+    _sdlinit();
+    init_win_ppu_tile();
 }
 
 void GBEmu::_sdlinit(){
-    scale = 2;
-    
+    scale = 2;    
     SDL_Init(SDL_INIT_EVERYTHING);
+    /*
     window = SDL_CreateWindow("GBEmu", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 160*scale, 144*scale, 0);
     renderer = SDL_CreateRenderer(window, -1, 0);
+    */
 }
 
 void GBEmu::display() {
@@ -102,110 +106,20 @@ void GBEmu::dump_rom(uint32_t from, uint32_t bytes) {
         printf("[%d] 0x%x\n", i, rom[i]);
     }
 }
-uint16_t GBEmu::read_mem_u16(uint16_t addr) {
-    uint16_t h, l;
-    l = read_mem(addr);
-    h = read_mem(addr + 1) << 8;
-    return h + l;
-}
-void GBEmu::write_mem_u16(uint16_t addr, uint16_t data) {
-    uint8_t h, l;
-    h = data >> 8;
-    l = data & 0xff;
-
-    write_mem(addr, l);
-    write_mem(addr + 1, h);
-    //printf("[16]data:%04x h:%02x, l:%02x\n", data, h, l);
-}
-uint8_t GBEmu::read_mem(uint16_t addr) {
-    if (0x0000 <= addr && addr <= 0x3fff) {
-        // rom(bank0)
-        return rom[addr];
-    } else if (0x4000 <= addr && addr <= 0x7FFF) {
-        // rom(bankN)
-    } else if (0x8000 <= addr && addr <= 0x9FFF) {
-        // 8KB vram
-    } else if (0xa000 <= addr && addr <= 0xbfff) {
-        // 8KB cartridge ram
-    } else if (0xc000 <= addr && addr <= 0xcfff) {
-        // wram(bank0)
-        return ram[addr];
-    } else if (0xd000 <= addr && addr <= 0xdfff) {
-        // wram(bankN)
-        return ram[addr];
-    } else if (0xe000 <= addr && addr <= 0xfdff) {
-        // mirror 0xc000 - 0xddff
-    } else if (0xfe00 <= addr && addr <= 0xfe9f) {
-        // oam
-    } else if (0xfea0 <= addr && addr <= 0xfeff) {
-        // unused
-    } else if (0xff00 <= addr && addr <= 0xff7f) {
-        // I/O register
-        return ram[addr];
-    } else if (0xff80 <= addr && addr <= 0xfffe) {
-        // HRAM
-    } else if (0xffff) {
-        // interrupt enable/disable
-    } else {
-        // none
-    }
-    return 0;
-}
-void GBEmu::write_mem(uint16_t addr, uint8_t data) {
-    if (0x0000 <= addr && addr <= 0x3fff) {
-        // rom(bank0)
-        rom[addr] = data;
-    } else if (0x4000 <= addr && addr <= 0x7FFF) {
-        // rom(bankN)
-    } else if (0x8000 <= addr && addr <= 0x9FFF) {
-        // 8KB vram
-    } else if (0xa000 <= addr && addr <= 0xbfff) {
-        // 8KB cartridge ram
-    } else if (0xc000 <= addr && addr <= 0xcfff) {
-        // wram(bank0)
-        ram[addr] = data;
-    } else if (0xd000 <= addr && addr <= 0xdfff) {
-        // wram(bankN)
-        ram[addr] = data;
-    } else if (0xe000 <= addr && addr <= 0xfdff) {
-        // mirror 0xc000 - 0xddff
-    } else if (0xfe00 <= addr && addr <= 0xfe9f) {
-        // oam
-    } else if (0xfea0 <= addr && addr <= 0xfeff) {
-        // unused
-    } else if (0xff00 <= addr && addr <= 0xff7f) {
-        // I/O register
-        ram[addr] = data;
-    } else if (0xff80 <= addr && addr <= 0xfffe) {
-        // HRAM
-    } else if (0xffff) {
-        // interrupt enable/disable
-    } else {
-        // none
-    }
-}
-void GBEmu::push(uint16_t data){
-    reg.sp -= 2;
-    write_mem_u16(reg.sp, data);
-    //printf("!! 0x%04x:0x%04x\n", reg.sp, read_mem_u16(reg.sp));
-}
-uint16_t GBEmu::pop(){
-    uint16_t data = read_mem_u16(reg.sp);
-    reg.sp += 2;
-    return data;
-}
 
 void GBEmu::run(const char rom_file_path[], bool flg_dump_regs, uint16_t exit_pc) {
-    printf("romfile: %s\n", rom_file_path);
+    end = false;
     reg.pc = 0x100;
+    ppu_mode = 2;
+    ppu_line = 0;
 
+    printf("romfile: %s\n", rom_file_path);
     int fd;
     fd = open(rom_file_path, O_RDONLY);
     if (fd == -1) {
         printf("failed to ROM file.(1)\n");
         exit(-1);
     }
-
     if (read(fd, rom, ROM_SIZE) == -1) {
         printf("failed to ROM file.(2)\n");
         exit(-1);
@@ -214,9 +128,75 @@ void GBEmu::run(const char rom_file_path[], bool flg_dump_regs, uint16_t exit_pc
 
     mbc = MBC::MBC0;
 
-    printf("\n");
+    ram[0x8000] = 0x18;
+    ram[0x8001] = 0x18;
+    ram[0x8002] = 0x3C;
+    ram[0x8003] = 0x3C;
+    ram[0x8004] = 0x66;
+    ram[0x8005] = 0x66;
+    ram[0x8006] = 0x66;
+    ram[0x8007] = 0x66;
+    ram[0x8008] = 0x7E;
+    ram[0x8009] = 0x7E;
+    ram[0x800a] = 0x66;
+    ram[0x800b] = 0x66;
+    ram[0x800c] = 0x66;
+    ram[0x800d] = 0x66;
+    ram[0x800e] = 0x00;
+    ram[0x800f] = 0x00;
 
-    end = false;
+    ram[0x8010] = 0x7C;
+    ram[0x8011] = 0x7C;
+    ram[0x8012] = 0x66;
+    ram[0x8013] = 0x66;
+    ram[0x8014] = 0x66;
+    ram[0x8015] = 0x66;
+    ram[0x8016] = 0x7C;
+    ram[0x8017] = 0x7C;
+    ram[0x8018] = 0x66;
+    ram[0x8019] = 0x66;
+    ram[0x801a] = 0x66;
+    ram[0x801b] = 0x66;
+    ram[0x801c] = 0x7C;
+    ram[0x801d] = 0x7C;
+    ram[0x801e] = 0x00;
+    ram[0x801f] = 0x00;
+
+    ram[0x8020] = 0x3C;
+    ram[0x8021] = 0x3C;
+    ram[0x8022] = 0x66;
+    ram[0x8023] = 0x66;
+    ram[0x8024] = 0x60;
+    ram[0x8025] = 0x60;
+    ram[0x8026] = 0x60;
+    ram[0x8027] = 0x60;
+    ram[0x8028] = 0x60;
+    ram[0x8029] = 0x60;
+    ram[0x802a] = 0x66;
+    ram[0x802b] = 0x66;
+    ram[0x802c] = 0x3C;
+    ram[0x802d] = 0x3C;
+    ram[0x802e] = 0x00;
+    ram[0x802f] = 0x00;
+
+    ram[0x8100] = 0x7c;
+    ram[0x8101] = 0x7c;
+    ram[0x8102] = 0x00;
+    ram[0x8103] = 0xc6;
+    ram[0x8104] = 0xc6;
+    ram[0x8105] = 0x00;
+    ram[0x8106] = 0x00;
+    ram[0x8107] = 0xfe;
+    ram[0x8108] = 0xc6;
+    ram[0x8109] = 0xc6;
+    ram[0x810a] = 0x00;
+    ram[0x810b] = 0xc6;
+    ram[0x810c] = 0xc6;
+    ram[0x810d] = 0x00;
+    ram[0x810e] = 0x00;
+    ram[0x810f] = 0x00;
+
+
 
     // initialize ragisters
     reg.af = 0x01b0;
@@ -258,40 +238,30 @@ void GBEmu::run(const char rom_file_path[], bool flg_dump_regs, uint16_t exit_pc
     ram[0xFF4B] = 0x00;  // WX
     ram[0xFFFF] = 0x00;  // IE
 
-    ppu_mode = 2;
-    ppu_line = 0;
-
-    while(!end){
-        cpu_step();
-        ppu_step();
-    }
+    main_loop();
 
     if(flg_dump_regs){
         dump_regs();
-        printf("LY: %d\n", read_mem(IO_REG::LY));
+
     }
+    
+    SDL_Delay(50);
+    SDL_Quit();
+}
 
-    /*
-    while(true){
-        display();
+void GBEmu::main_loop(void){
+    while(!end){
+        sdl_event();
+        cpu_step();
+        ppu_step();
+    }
+}
 
-        SDL_Event e;
-        if(SDL_PollEvent(&e)) {
-            if (e.type == SDL_QUIT){
-                break;
-            }
-            else if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_ESCAPE){
-                break;
-            }
-            else if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_1){
-                scale = 1;
-                SDL_SetWindowSize(window, 160*scale, 144*scale);
-            }
-            else if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_2){
-                scale = 2;
-                SDL_SetWindowSize(window, 160*scale, 144*scale);
-            }
+void GBEmu::sdl_event(void){
+    SDL_Event e;
+    while(SDL_PollEvent(&e)) {
+        if (e.type == SDL_QUIT) {
+            end = true;
         }
-    }*/
-    //display();
+    }
 }

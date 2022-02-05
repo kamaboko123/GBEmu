@@ -7,7 +7,9 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cfloat>
+#include <cstring>
 
+#include <thread>
 #include <SDL2/SDL.h>
 #include <gtk/gtk.h>
 
@@ -18,6 +20,18 @@
 
 #define MEM_SIZE 0xff * 0xff
 #define ROM_SIZE 1024 * 1024
+
+#define BOOT_LOGO_HEAD 0x104
+#define BOOT_LOGO_END  0x133
+#define BOOT_LOGO_SIZE BOOT_LOGO_END - BOOT_LOGO_HEAD
+#define VRAM_HEAD 0x8000
+#define VRAM_TILE_HEAD VRAM_HEAD
+#define VRAM_TILE_END 0x97FF
+
+#define TILE_NO_MIN 0
+#define TILE_NO_MAX 191
+#define TILE_X_PIX 8
+#define TILE_Y_PIX 8
 
 extern int gbemu_argc;
 extern char **gbemu_argv;
@@ -94,7 +108,10 @@ class GBEmu {
     MBC mbc;
     SDL_Window* window;
     SDL_Renderer* renderer;
-    
+
+    SDL_Window* win_ppu_tile;
+    SDL_Renderer* rend_ppu_tile;
+
     static GBPalette palette;
 
     void dump_rom(uint32_t from, uint32_t bytes);
@@ -112,6 +129,11 @@ class GBEmu {
     void display(void);
     void cpu_step(void);
     void ppu_step(void);
+
+    void init_win_ppu_tile(void);
+    void display_win_ppu_tile(void);
+    void main_loop(void);
+    void sdl_event(void);
 
    public:
     GBEmu();
