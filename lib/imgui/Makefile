@@ -1,7 +1,7 @@
 # Makefile
 CC = g++
 INCLUDE = -I include -I ./lib/img/include
-CFLAGS = -std=c++11 -g -Wall -O0 `pkg-config.exe --libs sdl2 | sed -e "s/-mwindows//g"`
+CFLAGS = -std=c++11 -g -Wall -O0 `pkg-config --libs sdl2 | sed -e "s/-mwindows//g"`
 
 SRC_DIR = src
 SRC = $(wildcard $(SRC_DIR)/*.cpp)
