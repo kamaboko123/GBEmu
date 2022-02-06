@@ -1,6 +1,7 @@
 #include "gbemu.hpp"
 
-void GBEmu::init_win_ppu_tile(void){
+void GBEmu::init_win_ppu_tile(void)
+{
     uint8_t tile_view_scale = 4;
 
     win_ppu_tile = SDL_CreateWindow(
@@ -9,14 +10,14 @@ void GBEmu::init_win_ppu_tile(void){
         SDL_WINDOWPOS_UNDEFINED,
         160 * tile_view_scale,
         144 * tile_view_scale,
-        0
-    );
+        0);
     rend_ppu_tile = SDL_CreateRenderer(win_ppu_tile, -1, 0);
     SDL_RenderSetScale(rend_ppu_tile, tile_view_scale, tile_view_scale);
     SDL_RenderPresent(rend_ppu_tile);
 }
 
-void GBEmu::display_win_ppu_tile(void){
+void GBEmu::display_win_ppu_tile(void)
+{
     SDL_SetRenderDrawColor(rend_ppu_tile, palette[0].r, palette[0].g, palette[0].b, 255);
     SDL_RenderClear(rend_ppu_tile);
 
@@ -40,12 +41,12 @@ void GBEmu::display_win_ppu_tile(void){
     GBColor col;
 
     uint8_t l, h, l_bit, h_bit, col_n, render_x, render_y;
-    for(uint16_t tile_no = TILE_NO_MIN; tile_no <= TILE_NO_MAX; tile_no++){
-        for(uint8_t y = 0; y < TILE_Y_PIX; y++){
+    for (uint16_t tile_no = TILE_NO_MIN; tile_no <= TILE_NO_MAX; tile_no++) {
+        for (uint8_t y = 0; y < TILE_Y_PIX; y++) {
             uint16_t addr = VRAM_TILE_HEAD + (16 * tile_no) + (y * 2);
-            l = read_mem(addr);  //下位が格納されているバイト
-            h = read_mem(addr + 1); //上位が格納されているバイト
-            for(int x = 0; x < TILE_X_PIX; x++){
+            l = read_mem(addr);      //下位が格納されているバイト
+            h = read_mem(addr + 1);  //上位が格納されているバイト
+            for (int x = 0; x < TILE_X_PIX; x++) {
                 l_bit = clib::getBit(l, TILE_X_PIX - x - 1);
                 h_bit = clib::getBit(h, TILE_X_PIX - x - 1);
 
@@ -63,69 +64,70 @@ void GBEmu::display_win_ppu_tile(void){
     SDL_RenderPresent(rend_ppu_tile);
 }
 
-
-void GBEmu::ppu_step(void){
+void GBEmu::ppu_step(void)
+{
     /* 参考
         http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-GPU-Timings
         https://w.atwiki.jp/gbspec/pages/21.html
         http://bgb.bircd.org/pandocs.htm
     */
-    //printf("PPU_MODE: %d\nLY: %d\nppu_mode_clock:%d\n", ppu_mode, read_mem(IO_REG::LY), ppu_mode_clock);
+    // printf("PPU_MODE: %d\nLY: %d\nppu_mode_clock:%d\n", ppu_mode, read_mem(IO_REG::LY), ppu_mode_clock);
     ppu_mode_clock += last_instr_clock;
 
-    switch(ppu_mode){
-        case PPU_MODE_2: // Read OAM
-            if(ppu_mode_clock >= PPU_MODE_CLOCKS[PPU_MODE_2]){
+    switch (ppu_mode) {
+        case PPU_MODE_2:  // Read OAM
+            if (ppu_mode_clock >= PPU_MODE_CLOCKS[PPU_MODE_2]) {
                 ppu_mode_clock = 0;
                 ppu_mode = PPU_MODE_3;
             }
-        break;
-        case PPU_MODE_3: // Read VRAM and OAM
-            if(ppu_mode_clock >= PPU_MODE_CLOCKS[PPU_MODE_3]){
+            break;
+        case PPU_MODE_3:  // Read VRAM and OAM
+            if (ppu_mode_clock >= PPU_MODE_CLOCKS[PPU_MODE_3]) {
                 ppu_mode_clock = 0;
-                ppu_mode  = PPU_MODE_0;
+                ppu_mode = PPU_MODE_0;
 
                 // TODO: render image
-                display_win_ppu_tile();
             }
-        break;
-        case PPU_MODE_0: // h-blank
-            if(ppu_mode_clock >= PPU_MODE_CLOCKS[PPU_MODE_0]){
+            break;
+        case PPU_MODE_0:  // h-blank
+            if (ppu_mode_clock >= PPU_MODE_CLOCKS[PPU_MODE_0]) {
                 ppu_mode_clock = 0;
                 ppu_line++;
-                
-                //143行描画したらv-blankへq
-                if(ppu_line == 143){
+
+                // 143行描画したらv-blankへq
+                if (ppu_line == 143) {
                     ppu_mode = PPU_MODE_1;
                 }
-                else{
+                else {
                     ppu_mode = PPU_MODE_2;
                 }
             }
-        break;
-        case PPU_MODE_1: // v-blank
-            //TODO: v-blank 割り込み実装
-            if(ppu_mode_clock >= PPU_MODE_LINE_CLOCK){
+            break;
+        case PPU_MODE_1:  // v-blank
+            // TODO: v-blank 割り込み実装
+            if (ppu_mode_clock >= PPU_MODE_LINE_CLOCK) {
                 ppu_mode_clock = 0;
                 ppu_line++;
 
-                if(ppu_line == 154){
+                if (ppu_line == 154) {
                     ppu_mode = PPU_MODE_2;
                     ppu_line = 0;
                 }
             }
-        break;
+            break;
     }
 
     write_mem(IO_REG::LY, ppu_line);
 }
 
-void GBEmu::push(uint16_t data){
+void GBEmu::push(uint16_t data)
+{
     reg.sp -= 2;
     write_mem_u16(reg.sp, data);
-    //printf("!! 0x%04x:0x%04x\n", reg.sp, read_mem_u16(reg.sp));
+    // printf("!! 0x%04x:0x%04x\n", reg.sp, read_mem_u16(reg.sp));
 }
-uint16_t GBEmu::pop(){
+uint16_t GBEmu::pop()
+{
     uint16_t data = read_mem_u16(reg.sp);
     reg.sp += 2;
     return data;

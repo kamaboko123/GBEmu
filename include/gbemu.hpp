@@ -89,7 +89,8 @@ enum MBC {
 
 class GBEmu {
    private:
-    bool end;
+    bool stop;
+    bool win_close;
     Registers reg;
     uint8_t* ram;
     uint8_t* rom;
@@ -139,6 +140,7 @@ class GBEmu {
     void sdl_event(void);
 
     void init_win_debug_gui(void);
+    void destroy_win_debug_gui(void);
     void display_win_debug_gui(void);
 
    public:

@@ -2,8 +2,8 @@
 
 CC = g++
 INCLUDE = -I include -I lib
-CFLAGS = -std=c++20 -g -Wall -O0 `pkg-config.exe --libs sdl2 | sed -e "s/-mwindows//g"`
-LDFLAGS = `pkg-config.exe --libs sdl2 | sed -e "s/-mwindows//g"`
+CFLAGS = -std=c++11 -g -Wall -O0 `pkg-config --libs sdl2 | sed -e "s/-mwindows//g"`
+LDFLAGS = -g `pkg-config --libs sdl2 | sed -e "s/-mwindows//g"`
 
 TARGET_DIR = bin
 TARGET = $(TARGET_DIR)/emu
@@ -31,10 +31,10 @@ test: all
 	cd test; make run;
 
 run: all
-	./$(TARGET) test/gb/0xe0_and_0xf0.gb
+	./$(TARGET)
 
 debug: all
-	./$(TARGET) test/gb/0xe0_and_0xf0.gb --regs
+	./$(TARGET) test/gb/0xe0_and_0xf0.gb --debug
 
 clean:
 	rm -rf $(TARGET_DIR)

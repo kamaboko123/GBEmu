@@ -5,21 +5,22 @@ char **gbemu_argv;
 
 GBPalette GBEmu::palette;
 
-GBEmu::GBEmu() { _init(); }
-GBEmu::~GBEmu() {
+GBEmu::GBEmu()
+{
+    _init();
+}
+GBEmu::~GBEmu()
+{
     delete[] ram;
     delete[] rom;
-
-    // SDL_DestroyRenderer(renderer);
-    // SDL_DestroyWindow(window);
-    // SDL_Delay(500);
-    // SDL_Quit();
 }
 
-void GBEmu::_init() {
+void GBEmu::_init()
+{
     ram = new uint8_t[MEM_SIZE]();
     rom = new uint8_t[ROM_SIZE]();
     memset(ram, 0, sizeof(MEM_SIZE));
+    memset(rom, 0, sizeof(ROM_SIZE));
 
     // PPUの各モード間のクロック数計算
     double clk_rate = CLOCK_RATE;
@@ -43,22 +44,20 @@ void GBEmu::_init() {
     printf("MODE2: %d clk\n", PPU_MODE_CLOCKS[PPU_MODE_2]);
     printf("MODE3: %d clk\n", PPU_MODE_CLOCKS[PPU_MODE_3]);
 
+    win_close = false;
+
     _sdlinit();
 }
 
-void GBEmu::_sdlinit() {
+void GBEmu::_sdlinit()
+{
     SDL_Init(SDL_INIT_EVERYTHING);
     init_win_ppu_tile();
     init_win_debug_gui();
-
-    /*
-    window = SDL_CreateWindow("GBEmu", SDL_WINDOWPOS_UNDEFINED,
-    SDL_WINDOWPOS_UNDEFINED, 160*scale, 144*scale, 0); renderer =
-    SDL_CreateRenderer(window, -1, 0);
-    */
 }
 
-void GBEmu::dump_regs() {
+void GBEmu::dump_regs()
+{
     printf("[registers:start]\n");
     printf("af: 0x%04x\n", reg.af);
     printf("bc: 0x%04x\n", reg.bc);
@@ -81,32 +80,37 @@ void GBEmu::dump_regs() {
     printf("[registers:end]\n");
 }
 
-void GBEmu::dump_rom(uint32_t from, uint32_t bytes) {
+void GBEmu::dump_rom(uint32_t from, uint32_t bytes)
+{
     printf("[ROM dump(units: 1byte)] [%d - %d]", from, from + bytes);
     for (uint32_t i = from; i <= from + bytes; i++) {
         printf("[%d] 0x%x\n", i, rom[i]);
     }
 }
 
-void GBEmu::run(const char rom_file_path[], bool flg_dump_regs,
-                uint16_t exit_pc) {
-    end = false;
+void GBEmu::run(const char rom_file_path[], bool flg_dump_regs, uint16_t exit_pc)
+{
+    stop = false;
     reg.pc = 0x100;
     ppu_mode = 2;
     ppu_line = 0;
 
-    printf("romfile: %s\n", rom_file_path);
-    int fd;
-    fd = open(rom_file_path, O_RDONLY);
-    if (fd == -1) {
-        printf("failed to ROM file.(1)\n");
-        exit(-1);
+    if (rom_file_path == nullptr) {
+        printf("romfile: [NULL]\n");
+        close(open("/dev/null", O_RDONLY));
     }
-    if (read(fd, rom, ROM_SIZE) == -1) {
-        printf("failed to ROM file.(2)\n");
-        exit(-1);
+    else {
+        printf("romfile: %s\n", rom_file_path);
+        int fd;
+        fd = open(rom_file_path, O_RDONLY);
+        if (fd == -1) {
+            printf("failed to ROM file.(1)\n");
+        }
+        if (read(fd, rom, ROM_SIZE) == -1) {
+            printf("failed to ROM file.(2)\n");
+        }
+        close(fd);
     }
-    close(fd);
 
     mbc = MBC::MBC0;
 
@@ -224,29 +228,54 @@ void GBEmu::run(const char rom_file_path[], bool flg_dump_regs,
         dump_regs();
     }
 
-    SDL_Delay(50);
+    // SDL_Delay(50);
+    destroy_win_debug_gui();
+    SDL_DestroyRenderer(rend_ppu_tile);
+    SDL_DestroyWindow(win_ppu_tile);
     SDL_Quit();
 }
 
-void GBEmu::main_loop(void) {
-    while (!end) {
+void GBEmu::main_loop(void)
+{
+    while (!win_close) {
+        // SDL steps
         sdl_event();
-        cpu_step();
-        ppu_step();
+        display_win_ppu_tile();
         display_win_debug_gui();
+
+        // emulator steps
+        if (!stop) {
+            cpu_step();
+            ppu_step();
+        }
     }
 }
 
-void GBEmu::sdl_event(void) {
+void GBEmu::sdl_event(void)
+{
     SDL_Event e;
-    while (SDL_PollEvent(&e)) {
+    while (SDL_PollEvent(&e) != 0) {
         ImGui_ImplSDL2_ProcessEvent(&e);
         if (e.type == SDL_QUIT) {
-            end = true;
+            stop = true;
+            win_close = true;
+            break;
         }
         if (e.type == SDL_WINDOWEVENT && e.window.event == SDL_WINDOWEVENT_CLOSE) {
             if (e.window.windowID == SDL_GetWindowID(win_ppu_tile) || e.window.windowID == SDL_GetWindowID(win_debug_gui)) {
-                end = true;
+                stop = true;
+                win_close = true;
+                break;
+            }
+        }
+        if (e.type == SDL_KEYDOWN) {
+            if (e.key.keysym.sym == SDLK_ESCAPE) {
+                stop = true;
+                win_close = true;
+                break;
+            }
+            if (e.key.keysym.sym == SDLK_F1) {
+                stop = !stop;
             }
         }
     }
