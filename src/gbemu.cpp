@@ -19,8 +19,6 @@ void GBEmu::_init()
 {
     ram = new uint8_t[MEM_SIZE]();
     rom = new uint8_t[ROM_SIZE]();
-    memset(ram, 0, sizeof(MEM_SIZE));
-    memset(rom, 0, sizeof(ROM_SIZE));
 
     // PPUの各モード間のクロック数計算
     double clk_rate = CLOCK_RATE;
@@ -51,7 +49,7 @@ void GBEmu::_init()
 
 void GBEmu::_sdlinit()
 {
-    SDL_Init(SDL_INIT_EVERYTHING);
+    SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER);
     init_win_ppu_tile();
     init_win_debug_gui();
 }
@@ -95,21 +93,30 @@ void GBEmu::run(const char rom_file_path[], bool flg_dump_regs, uint16_t exit_pc
     ppu_mode = 2;
     ppu_line = 0;
 
+    bool load_rom = false;
+    memset(ram, 0, sizeof(MEM_SIZE));
+    memset(rom, 0, sizeof(ROM_SIZE));
+
     if (rom_file_path == nullptr) {
         printf("romfile: [NULL]\n");
-        close(open("/dev/null", O_RDONLY));
     }
     else {
-        printf("romfile: %s\n", rom_file_path);
+        printf("romfile: %s", rom_file_path);
         int fd;
         fd = open(rom_file_path, O_RDONLY);
-        if (fd == -1) {
-            printf("failed to ROM file.(1)\n");
+        if (fd != -1) {
+            if (read(fd, rom, ROM_SIZE) != -1) {
+                printf("[OK]\n");
+                load_rom = true;
+            }
+            else {
+                printf("[NG](failed to read)\n");
+            }
+            close(fd);
         }
-        if (read(fd, rom, ROM_SIZE) == -1) {
-            printf("failed to ROM file.(2)\n");
+        else {
+            printf("[NG](failed to open)\n");
         }
-        close(fd);
     }
 
     mbc = MBC::MBC0;
