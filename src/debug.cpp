@@ -1,14 +1,29 @@
 #include "gbemu.hpp"
 
+void GBEmu::init_imgui(void)
+{
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO();
+    ImGui::StyleColorsDark();
+}
+
+void GBEmu::destory_imgui(void)
+{
+    ImGui_ImplSDLRenderer_Shutdown();
+    ImGui_ImplSDL2_Shutdown();
+    ImGui::DestroyContext();
+}
+
 void GBEmu::init_win_debug_gui(void)
 {
     SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
     win_debug_gui = SDL_CreateWindow(
         "[GBEmu(DEBUG)]",
-        SDL_WINDOWPOS_CENTERED,
-        SDL_WINDOWPOS_CENTERED,
-        640,
-        480,
+        SDL_WINDOWPOS_UNDEFINED,
+        SDL_WINDOWPOS_UNDEFINED,
+        1280,
+        960,
         window_flags);
 
     rend_debug_gui = SDL_CreateRenderer(
@@ -16,21 +31,15 @@ void GBEmu::init_win_debug_gui(void)
         -1,
         SDL_RENDERER_PRESENTVSYNC | SDL_RENDERER_ACCELERATED);
 
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO();
-    ImGui::StyleColorsDark();
-
     ImGui_ImplSDL2_InitForSDLRenderer(win_debug_gui, rend_debug_gui);
     ImGui_ImplSDLRenderer_Init(rend_debug_gui);
+
+    int scale = 1;
+    SDL_RenderSetScale(rend_debug_gui, scale, scale);
 }
 
 void GBEmu::destroy_win_debug_gui(void)
 {
-    ImGui_ImplSDLRenderer_Shutdown();
-    ImGui_ImplSDL2_Shutdown();
-    ImGui::DestroyContext();
-
     SDL_DestroyRenderer(rend_debug_gui);
     SDL_DestroyWindow(win_debug_gui);
 }
@@ -42,7 +51,6 @@ void GBEmu::display_win_debug_gui(void)
     ImGui_ImplSDLRenderer_NewFrame();
     ImGui_ImplSDL2_NewFrame();
     ImGui::NewFrame();
-
     {
         ImGui::Begin("Registers");
         bool z = reg.flags.z;

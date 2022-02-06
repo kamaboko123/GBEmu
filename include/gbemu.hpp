@@ -1,8 +1,8 @@
 #ifndef GBEMU_GBEMU_H
 #define GBEMU_GBEMU_H
-#include <SDL2/SDL.h>
+#include <SDL.h>
 #include <fcntl.h>
-#include <unistd.h>
+#include <io.h>
 
 #include <cfloat>
 #include <cstdint>
@@ -11,11 +11,12 @@
 #include <cstring>
 #include <thread>
 
+
 #include "clib.hpp"
 #include "color.hpp"
-#include "imgui/include/imgui.h"
-#include "imgui/include/imgui_impl_sdl.h"
-#include "imgui/include/imgui_impl_sdlrenderer.h"
+#include "imgui.h"
+#include "imgui_impl_sdl.h"
+#include "imgui_impl_sdlrenderer.h"
 
 //#define CLOCK_RATE 4194304.0f
 #define CLOCK_RATE 4200000.0f
@@ -34,9 +35,6 @@
 #define TILE_NO_MAX 191
 #define TILE_X_PIX 8
 #define TILE_Y_PIX 8
-
-extern int gbemu_argc;
-extern char** gbemu_argv;
 
 struct Registers {
     union {
@@ -91,6 +89,7 @@ class GBEmu {
    private:
     bool stop;
     bool win_close;
+    bool enable_debug;
     Registers reg;
     uint8_t* ram;
     uint8_t* rom;
@@ -130,7 +129,6 @@ class GBEmu {
     uint16_t pop(void);
 
     void _sdlinit(void);
-    void display(void);
     void cpu_step(void);
     void ppu_step(void);
 
@@ -140,13 +138,15 @@ class GBEmu {
     void sdl_event(void);
 
     void init_win_debug_gui(void);
+    void init_imgui(void);
+    void destory_imgui(void);
     void destroy_win_debug_gui(void);
     void display_win_debug_gui(void);
 
    public:
     GBEmu();
     ~GBEmu();
-    void run(const char rom_file_path[], bool flg_dump_regs, uint16_t exit_pc = 0);
+    void run(const char rom_file_path[]);
 };
 
 enum IO_REG : uint16_t {

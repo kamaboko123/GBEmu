@@ -2,6 +2,11 @@
 #define GBEMU_COLOR_H
 
 #include <cstdint>
+
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
 #include <GL/gl.h>
 
 typedef struct GBColor{

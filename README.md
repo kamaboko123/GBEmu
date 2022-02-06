@@ -3,11 +3,8 @@
 
 ## ビルド環境
 - Windows10
-- MSYS2
-    - GCC(g++)
-    - Make
-    - SDL2
-        - `mingw-w64-x86_64-SDL2`
+- VisualStudio Comminity 2022
+
 - Dependent libraries
+    - [SDL2](https://www.libsdl.org/)
     - [imgui](https://github.com/ocornut/imgui)
-        - include pathの関係でMSYSに合わせて一部修正

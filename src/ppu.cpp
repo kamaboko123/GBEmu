@@ -11,7 +11,7 @@ void GBEmu::init_win_ppu_tile(void)
         160 * tile_view_scale,
         144 * tile_view_scale,
         0);
-    rend_ppu_tile = SDL_CreateRenderer(win_ppu_tile, -1, 0);
+    rend_ppu_tile = SDL_CreateRenderer(win_ppu_tile, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
     SDL_RenderSetScale(rend_ppu_tile, tile_view_scale, tile_view_scale);
     SDL_RenderPresent(rend_ppu_tile);
 }
@@ -75,13 +75,15 @@ void GBEmu::ppu_step(void)
     ppu_mode_clock += last_instr_clock;
 
     switch (ppu_mode) {
-        case PPU_MODE_2:  // Read OAM
+        case PPU_MODE_2:
+            // Read OAM
             if (ppu_mode_clock >= PPU_MODE_CLOCKS[PPU_MODE_2]) {
                 ppu_mode_clock = 0;
                 ppu_mode = PPU_MODE_3;
             }
             break;
-        case PPU_MODE_3:  // Read VRAM and OAM
+        case PPU_MODE_3:
+            // Read VRAM and OAM
             if (ppu_mode_clock >= PPU_MODE_CLOCKS[PPU_MODE_3]) {
                 ppu_mode_clock = 0;
                 ppu_mode = PPU_MODE_0;
@@ -89,12 +91,13 @@ void GBEmu::ppu_step(void)
                 // TODO: render image
             }
             break;
-        case PPU_MODE_0:  // h-blank
+        case PPU_MODE_0:
+            // h-blank
             if (ppu_mode_clock >= PPU_MODE_CLOCKS[PPU_MODE_0]) {
                 ppu_mode_clock = 0;
                 ppu_line++;
 
-                // 143行描画したらv-blankへq
+                // 143行描画したらv-blankへ
                 if (ppu_line == 143) {
                     ppu_mode = PPU_MODE_1;
                 }
@@ -103,7 +106,8 @@ void GBEmu::ppu_step(void)
                 }
             }
             break;
-        case PPU_MODE_1:  // v-blank
+        case PPU_MODE_1:
+            // v-blank
             // TODO: v-blank 割り込み実装
             if (ppu_mode_clock >= PPU_MODE_LINE_CLOCK) {
                 ppu_mode_clock = 0;

@@ -2,7 +2,10 @@ bin/
 obj/
 test/gb
 test/obj
-*.gb
 tmp/
 .vscode/
 imgui.ini
+[Rr]elease*/
+[Dd]ebug*/
+.vs/
+*.vcxproj.user

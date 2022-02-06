@@ -1,7 +1,8 @@
+
 #include "gbemu.hpp"
 
-int gbemu_argc;
-char **gbemu_argv;
+// int gbemu_argc;
+// char **gbemu_argv;
 
 GBPalette GBEmu::palette;
 
@@ -13,18 +14,20 @@ GBEmu::~GBEmu()
 {
     delete[] ram;
     delete[] rom;
+
+    //終了処理入れると何故か安定しなくなるんじゃ....
+    // destory_imgui();
+    // SDL_Quit();
 }
 
 void GBEmu::_init()
 {
-    ram = new uint8_t[MEM_SIZE]();
-    rom = new uint8_t[ROM_SIZE]();
-
     // PPUの各モード間のクロック数計算
-    double clk_rate = CLOCK_RATE;
+    double _clk_rate = CLOCK_RATE;
     double clk_sec;
-    // 1クロックあたりの秒数
-    clk_sec = (double)1.0f / clk_rate;
+
+    clk_sec = (double)1.0f / _clk_rate;
+
     //各モードを処理に要する秒数を、1クロックあたりの秒数で割って、各モードの処理に必要なクロックを求める
     //ここで求めたクロック数を基準にPPUではモードを切り替えていく
     PPU_MODE_CLOCKS[PPU_MODE_0] = (uint16_t)(48.6e-6 / clk_sec);
@@ -42,16 +45,17 @@ void GBEmu::_init()
     printf("MODE2: %d clk\n", PPU_MODE_CLOCKS[PPU_MODE_2]);
     printf("MODE3: %d clk\n", PPU_MODE_CLOCKS[PPU_MODE_3]);
 
-    win_close = false;
-
+    ram = new uint8_t[MEM_SIZE]();
+    rom = new uint8_t[ROM_SIZE]();
+    
     _sdlinit();
 }
 
 void GBEmu::_sdlinit()
 {
     SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER);
+    init_imgui();
     init_win_ppu_tile();
-    init_win_debug_gui();
 }
 
 void GBEmu::dump_regs()
@@ -86,8 +90,15 @@ void GBEmu::dump_rom(uint32_t from, uint32_t bytes)
     }
 }
 
-void GBEmu::run(const char rom_file_path[], bool flg_dump_regs, uint16_t exit_pc)
+void GBEmu::run(const char rom_file_path[])
 {
+    win_close = false;
+    enable_debug = true;
+
+    if (enable_debug) {
+        init_win_debug_gui();
+    }
+
     stop = false;
     reg.pc = 0x100;
     ppu_mode = 2;
@@ -103,20 +114,21 @@ void GBEmu::run(const char rom_file_path[], bool flg_dump_regs, uint16_t exit_pc
     else {
         printf("romfile: %s", rom_file_path);
         int fd;
-        fd = open(rom_file_path, O_RDONLY);
-        if (fd != -1) {
-            if (read(fd, rom, ROM_SIZE) != -1) {
+        
+        if (_sopen_s(&fd, rom_file_path, _O_RDONLY, _SH_DENYNO, 0)) {
+            printf("[NG](failed to open)\n");
+        }
+        else{
+            if (_read(fd, rom, ROM_SIZE) != -1) {
                 printf("[OK]\n");
                 load_rom = true;
             }
             else {
                 printf("[NG](failed to read)\n");
             }
-            close(fd);
+            _close(fd);
         }
-        else {
-            printf("[NG](failed to open)\n");
-        }
+
     }
 
     mbc = MBC::MBC0;
@@ -231,15 +243,14 @@ void GBEmu::run(const char rom_file_path[], bool flg_dump_regs, uint16_t exit_pc
 
     main_loop();
 
-    if (flg_dump_regs) {
-        dump_regs();
-    }
+    dump_regs();
 
     // SDL_Delay(50);
-    destroy_win_debug_gui();
+    if (enable_debug) {
+        destroy_win_debug_gui();
+    }
     SDL_DestroyRenderer(rend_ppu_tile);
     SDL_DestroyWindow(win_ppu_tile);
-    SDL_Quit();
 }
 
 void GBEmu::main_loop(void)
@@ -248,7 +259,7 @@ void GBEmu::main_loop(void)
         // SDL steps
         sdl_event();
         display_win_ppu_tile();
-        display_win_debug_gui();
+        if (enable_debug) display_win_debug_gui();
 
         // emulator steps
         if (!stop) {
@@ -262,18 +273,19 @@ void GBEmu::sdl_event(void)
 {
     SDL_Event e;
     while (SDL_PollEvent(&e) != 0) {
-        ImGui_ImplSDL2_ProcessEvent(&e);
+        if (enable_debug) {
+            ImGui_ImplSDL2_ProcessEvent(&e);
+        }
         if (e.type == SDL_QUIT) {
             stop = true;
             win_close = true;
             break;
         }
         if (e.type == SDL_WINDOWEVENT && e.window.event == SDL_WINDOWEVENT_CLOSE) {
-            if (e.window.windowID == SDL_GetWindowID(win_ppu_tile) || e.window.windowID == SDL_GetWindowID(win_debug_gui)) {
-                stop = true;
-                win_close = true;
-                break;
-            }
+            // if (e.window.windowID == SDL_GetWindowID(win_ppu_tile) || e.window.windowID == SDL_GetWindowID(win_debug_gui))
+            stop = true;
+            win_close = true;
+            break;
         }
         if (e.type == SDL_KEYDOWN) {
             if (e.key.keysym.sym == SDLK_ESCAPE) {
