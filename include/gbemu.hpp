@@ -13,9 +13,9 @@
 
 #include "clib.hpp"
 #include "color.hpp"
-#include "imgui.h"
-#include "imgui_impl_sdl.h"
-#include "imgui_impl_sdlrenderer.h"
+#include "imgui/include/imgui.h"
+#include "imgui/include/imgui_impl_sdl.h"
+#include "imgui/include/imgui_impl_sdlrenderer.h"
 
 //#define CLOCK_RATE 4194304.0f
 #define CLOCK_RATE 4200000.0f

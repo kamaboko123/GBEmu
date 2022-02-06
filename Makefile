@@ -1,13 +1,9 @@
 #Makefile
 
 CC = g++
-INCLUDE = -I include
+INCLUDE = -I include -I lib
 CFLAGS = -std=c++20 -g -Wall -O0 `pkg-config.exe --libs sdl2 | sed -e "s/-mwindows//g"`
-ifeq ($(OS),Windows_NT)
 LDFLAGS = `pkg-config.exe --libs sdl2 | sed -e "s/-mwindows//g"`
-else
-LDFLAGS = -lopengl32 -lglu32 -lm -lmingw32 -lSDL2main -lSDL2
-endif
 
 TARGET_DIR = bin
 TARGET = $(TARGET_DIR)/emu
@@ -16,6 +12,18 @@ SRC_DIR = src
 SRC = $(wildcard $(SRC_DIR)/*.cpp)
 OBJ_DIR = obj
 OBJ = $(addprefix $(OBJ_DIR)/, $(notdir $(SRC:.cpp=.o)))
+
+LIBS_DIR = lib
+LIBS_DIRS = $(shell find $(LIBS_DIR) -maxdepth 1 -type d -not -path $(LIBS_DIR))
+LIBS_SRC = $(shell find $(LIBS_DIR) -name *.cpp -type f -print | sed -e 's,/src/,/obj/,g')
+LIBS_OBJ = $(shell find $(LIBS_DIR) -name *.cpp -type f -print | sed -e 's,/src/,/obj/,g' | sed -e 's/\.cpp$$/\.o/g')
+
+define make_lib
+	cd $1; make;
+endef
+define clean_lib
+	cd $1; make clean;
+endef
 
 all: $(TARGET)
 
@@ -29,27 +37,25 @@ debug: all
 	./$(TARGET) test/gb/0xe0_and_0xf0.gb --regs
 
 clean:
-ifeq ($(OS),Windows_NT)
-	cmd.exe /C rmdir /s /q $(TARGET_DIR)
-	cmd.exe /C rmdir /s /q $(OBJ_DIR)
-	cd test; make clean;
-else
 	rm -rf $(TARGET_DIR)
 	rm -rf $(OBJ_DIR)
-endif
 
+clean_all:
+	make clean
+	make clean_libs
+
+.PHONY: libs
 $(TARGET): $(OBJ)
-ifeq ($(OS),Windows_NT)
-	cmd.exe /C if not exist $(TARGET_DIR) mkdir $(TARGET_DIR)
-else
+	make libs
 	mkdir -p $(TARGET_DIR)
-endif
-	$(CC) $(CFLAGS) $(INCLUDE) -o $@ $^ $(LDFLAGS)
+	$(CC) $(CFLAGS) $(INCLUDE) -o $@ $^ $(LIBS_OBJ) $(LDFLAGS)
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
-ifeq ($(OS),Windows_NT)
-	cmd.exe /C if not exist $(OBJ_DIR) mkdir $(OBJ_DIR)
-else
 	mkdir -p $(OBJ_DIR)
-endif
 	$(CC) -c $(CFLAGS) $(INCLUDE) -o $@ $<
+
+libs: 
+	$(foreach x, $(LIBS_DIRS), $(call make_lib, $(x)))
+
+clean_libs:
+	$(foreach x, $(LIBS_DIRS), $(call clean_lib, $(x)))
