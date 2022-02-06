@@ -3,7 +3,7 @@
 
 ## ビルド環境
 - Windows10
-- VisualStudio Comminity 2022
+- VisualStudio Community 2022
 
 - Dependent libraries
     - [SDL2](https://www.libsdl.org/)

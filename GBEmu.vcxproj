@@ -269,6 +269,11 @@
     <ClInclude Include="lib\SDL2\include\SDL_video.h" />
     <ClInclude Include="lib\SDL2\include\SDL_vulkan.h" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="res\cpu_instrs.gb">
+      <DeploymentContent>false</DeploymentContent>
+    </None>
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>

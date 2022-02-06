@@ -348,4 +348,7 @@
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="res\cpu_instrs.gb" />
+  </ItemGroup>
 </Project>
