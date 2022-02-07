@@ -74,19 +74,23 @@ void GBEmu::ppu_step(void)
     // printf("PPU_MODE: %d\nLY: %d\nppu_mode_clock:%d\n", ppu_mode, read_mem(IO_REG::LY), ppu_mode_clock);
     ppu_mode_clock += last_instr_clock;
 
-    switch (ppu_mode) {
+    //map drawed line to IO port
+    uint8_t *ppu_line = &ram[IO_REG::LY];
+    IO_LCD_STAT *lcd_status = (IO_LCD_STAT*)&ram[STAT];
+
+    switch (lcd_status->mode) {
         case PPU_MODE_2:
             // Read OAM
             if (ppu_mode_clock >= PPU_MODE_CLOCKS[PPU_MODE_2]) {
                 ppu_mode_clock = 0;
-                ppu_mode = PPU_MODE_3;
+                lcd_status->mode = PPU_MODE_3;
             }
             break;
         case PPU_MODE_3:
             // Read VRAM and OAM
             if (ppu_mode_clock >= PPU_MODE_CLOCKS[PPU_MODE_3]) {
                 ppu_mode_clock = 0;
-                ppu_mode = PPU_MODE_0;
+                lcd_status->mode = PPU_MODE_0;
 
                 // TODO: render image
             }
@@ -95,14 +99,14 @@ void GBEmu::ppu_step(void)
             // h-blank
             if (ppu_mode_clock >= PPU_MODE_CLOCKS[PPU_MODE_0]) {
                 ppu_mode_clock = 0;
-                ppu_line++;
+                (*ppu_line)++;
 
                 // 143行描画したらv-blankへ
-                if (ppu_line == 143) {
-                    ppu_mode = PPU_MODE_1;
+                if (*ppu_line == 143) {
+                    lcd_status->mode = PPU_MODE_1;
                 }
                 else {
-                    ppu_mode = PPU_MODE_2;
+                    lcd_status->mode = PPU_MODE_2;
                 }
             }
             break;
@@ -111,17 +115,15 @@ void GBEmu::ppu_step(void)
             // TODO: v-blank 割り込み実装
             if (ppu_mode_clock >= PPU_MODE_LINE_CLOCK) {
                 ppu_mode_clock = 0;
-                ppu_line++;
+                (*ppu_line)++;
 
-                if (ppu_line == 154) {
-                    ppu_mode = PPU_MODE_2;
-                    ppu_line = 0;
+                if (*ppu_line == 154) {
+                    lcd_status->mode = PPU_MODE_2;
+                    *ppu_line = 0;
                 }
             }
             break;
     }
-
-    write_mem(IO_REG::LY, ppu_line);
 }
 
 void GBEmu::push(uint16_t data)

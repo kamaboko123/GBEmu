@@ -12,16 +12,19 @@ GBEmu::GBEmu()
 }
 GBEmu::~GBEmu()
 {
+    //終了処理入れると何故か安定しなくなるんじゃ....
+    destory_imgui();
+    SDL_Quit();
+
     delete[] ram;
     delete[] rom;
-
-    //終了処理入れると何故か安定しなくなるんじゃ....
-    // destory_imgui();
-    // SDL_Quit();
 }
 
 void GBEmu::_init()
 {
+    ram = new uint8_t[MEM_SIZE];
+    rom = new uint8_t[ROM_SIZE];
+
     // PPUの各モード間のクロック数計算
     double _clk_rate = CLOCK_RATE;
     double clk_sec;
@@ -44,16 +47,16 @@ void GBEmu::_init()
     printf("MODE1: %d clk\n", PPU_MODE_CLOCKS[PPU_MODE_1]);
     printf("MODE2: %d clk\n", PPU_MODE_CLOCKS[PPU_MODE_2]);
     printf("MODE3: %d clk\n", PPU_MODE_CLOCKS[PPU_MODE_3]);
-
-    ram = new uint8_t[MEM_SIZE]();
-    rom = new uint8_t[ROM_SIZE]();
     
+    //lcd_status = (IO_LCD_STAT*)&ram[STAT];
+
     _sdlinit();
 }
 
 void GBEmu::_sdlinit()
 {
-    SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER);
+    //SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER);
+    SDL_Init(SDL_INIT_EVERYTHING);
     init_imgui();
     init_win_ppu_tile();
 }
@@ -90,8 +93,62 @@ void GBEmu::dump_rom(uint32_t from, uint32_t bytes)
     }
 }
 
+void GBEmu::init_regs(void) {
+    // initialize ragisters
+    reg.af = 0x01b0;
+    reg.bc = 0x0013;
+    reg.de = 0x00d8;
+    reg.hl = 0x014d;
+    reg.sp = 0xfffe;
+    reg.pc = 0x0100;
+}
+
+void GBEmu::init_io_ports(void) {
+    ((IO_LCD_STAT*)&ram[IO_REG::STAT])->mode = 2;
+    ram[IO_REG::LY] = 0;
+
+    ram[0xFF05] = 0x00;  // TIMA
+    ram[0xFF06] = 0x00;  // TMA
+    ram[0xFF07] = 0x00;  // TAC
+    ram[0xFF10] = 0x80;  // NR10
+    ram[0xFF11] = 0xBF;  // NR11
+    ram[0xFF12] = 0xF3;  // NR12
+    ram[0xFF14] = 0xBF;  // NR14
+    ram[0xFF16] = 0x3F;  // NR21
+    ram[0xFF17] = 0x00;  // NR22
+    ram[0xFF19] = 0xBF;  // NR24
+    ram[0xFF1A] = 0x7F;  // NR30
+    ram[0xFF1B] = 0xFF;  // NR31
+    ram[0xFF1C] = 0x9F;  // NR32
+    ram[0xFF1E] = 0xBF;  // NR33
+    ram[0xFF20] = 0xFF;  // NR41
+    ram[0xFF21] = 0x00;  // NR42
+    ram[0xFF22] = 0x00;  // NR43
+    ram[0xFF23] = 0xBF;  // NR30
+    ram[0xFF24] = 0x77;  // NR50
+    ram[0xFF25] = 0xF3;  // NR51
+    ram[0xFF26] = 0xF1;  // NR52
+    ram[IO_REG::LCDC] = 0x91;
+    ram[IO_REG::SCY] = 0x00; 
+    ram[IO_REG::SCX] = 0x00; 
+    ram[IO_REG::LYC] = 0x00;
+    ram[IO_REG::BGP] = 0xFC;
+    ram[IO_REG::OBP0] = 0xFF;
+    ram[IO_REG::OBP1] = 0xFF;
+    ram[IO_REG::WY] = 0x00;
+    ram[IO_REG::WX] = 0x00; 
+    ram[0xFFFF] = 0x00;  // IE
+}
+
 void GBEmu::run(const char rom_file_path[])
 {
+    memset(ram, 0, MEM_SIZE);
+    memset(rom, 0, ROM_SIZE);
+
+    init_regs();
+    init_io_ports();
+
+    stop = false;
     win_close = false;
     enable_debug = true;
 
@@ -99,14 +156,7 @@ void GBEmu::run(const char rom_file_path[])
         init_win_debug_gui();
     }
 
-    stop = false;
-    reg.pc = 0x100;
-    ppu_mode = 2;
-    ppu_line = 0;
-
     bool load_rom = false;
-    memset(ram, 0, sizeof(MEM_SIZE));
-    memset(rom, 0, sizeof(ROM_SIZE));
 
     if (rom_file_path == nullptr) {
         printf("romfile: [NULL]\n");
@@ -119,7 +169,7 @@ void GBEmu::run(const char rom_file_path[])
             printf("[NG](failed to open)\n");
         }
         else{
-            if (_read(fd, rom, ROM_SIZE) != -1) {
+            if (_read(fd, rom, ROM_SIZE) > 0) {
                 printf("[OK]\n");
                 load_rom = true;
             }
@@ -201,49 +251,19 @@ void GBEmu::run(const char rom_file_path[])
     ram[0x810e] = 0x00;
     ram[0x810f] = 0x00;
 
-    // initialize ragisters
-    reg.af = 0x01b0;
-    reg.bc = 0x0013;
-    reg.de = 0x00d8;
-    reg.hl = 0x014d;
-    reg.sp = 0xfffe;
+    /*
+    std::thread cpu(&GBEmu::cpu_loop, this);
+    cpu.join();
+    */
+    SDL_Thread* cpu;
+    cpu = SDL_CreateThread(&GBEmu::cpu_loop_wrapper, "cpu_loop", this);
 
-    // io registers
-    ram[0xFF05] = 0x00;  // TIMA
-    ram[0xFF06] = 0x00;  // TMA
-    ram[0xFF07] = 0x00;  // TAC
-    ram[0xFF10] = 0x80;  // NR10
-    ram[0xFF11] = 0xBF;  // NR11
-    ram[0xFF12] = 0xF3;  // NR12
-    ram[0xFF14] = 0xBF;  // NR14
-    ram[0xFF16] = 0x3F;  // NR21
-    ram[0xFF17] = 0x00;  // NR22
-    ram[0xFF19] = 0xBF;  // NR24
-    ram[0xFF1A] = 0x7F;  // NR30
-    ram[0xFF1B] = 0xFF;  // NR31
-    ram[0xFF1C] = 0x9F;  // NR32
-    ram[0xFF1E] = 0xBF;  // NR33
-    ram[0xFF20] = 0xFF;  // NR41
-    ram[0xFF21] = 0x00;  // NR42
-    ram[0xFF22] = 0x00;  // NR43
-    ram[0xFF23] = 0xBF;  // NR30
-    ram[0xFF24] = 0x77;  // NR50
-    ram[0xFF25] = 0xF3;  // NR51
-    ram[0xFF26] = 0xF1;  // NR52
-    ram[0xFF40] = 0x91;  // LCDC
-    ram[0xFF42] = 0x00;  // SCY
-    ram[0xFF43] = 0x00;  // SCX
-    ram[0xFF45] = 0x00;  // LYC
-    ram[0xFF47] = 0xFC;  // BGP
-    ram[0xFF48] = 0xFF;  // OBP0
-    ram[0xFF49] = 0xFF;  // OBP1
-    ram[0xFF4A] = 0x00;  // WY
-    ram[0xFF4B] = 0x00;  // WX
-    ram[0xFFFF] = 0x00;  // IE
-
-    main_loop();
-
+    sdl_loop();
     dump_regs();
+
+    int _ret;
+    SDL_WaitThread(cpu, &_ret);
+    printf("CPU Thread finished.(%d)", _ret);
 
     // SDL_Delay(50);
     if (enable_debug) {
@@ -253,19 +273,41 @@ void GBEmu::run(const char rom_file_path[])
     SDL_DestroyWindow(win_ppu_tile);
 }
 
-void GBEmu::main_loop(void)
+int GBEmu::cpu_loop_wrapper(void* data)
+{
+    GBEmu* self = static_cast<GBEmu*>(data);
+    return self->cpu_loop();
+}
+
+int  GBEmu::cpu_loop(void) {
+    // emulator steps
+    while (!stop) {
+        auto start = std::chrono::system_clock::now();
+        
+        cpu_step();
+        ppu_step();
+
+        auto end = std::chrono::system_clock::now();
+
+        //実際の処理にかかった時間
+        auto process_time = end - start;
+        auto process_time_micro = std::chrono::duration_cast<std::chrono::microseconds>(process_time);
+        if (process_time_micro.count() != 0) {
+            fps_max = (uint16_t)((long long)1e6 / process_time_micro.count());
+        }
+    }
+    printf("[end] 0x%04x: 0x%02x\n", reg.pc, read_mem(reg.pc));
+    printf("%d\n", stop);
+    return 0;
+}
+
+void GBEmu::sdl_loop(void)
 {
     while (!win_close) {
         // SDL steps
         sdl_event();
         display_win_ppu_tile();
         if (enable_debug) display_win_debug_gui();
-
-        // emulator steps
-        if (!stop) {
-            cpu_step();
-            ppu_step();
-        }
     }
 }
 

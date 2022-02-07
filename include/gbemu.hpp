@@ -10,18 +10,19 @@
 #include <cstdlib>
 #include <cstring>
 #include <thread>
-
+#include <chrono>
 
 #include "clib.hpp"
 #include "color.hpp"
 #include "imgui.h"
 #include "imgui_impl_sdl.h"
 #include "imgui_impl_sdlrenderer.h"
+#include "SDL_thread.h"
 
 //#define CLOCK_RATE 4194304.0f
 #define CLOCK_RATE 4200000.0f
 
-#define MEM_SIZE 0xff * 0xff
+#define MEM_SIZE 1024 * 1024
 #define ROM_SIZE 1024 * 1024
 
 #define BOOT_LOGO_HEAD 0x104
@@ -35,6 +36,37 @@
 #define TILE_NO_MAX 191
 #define TILE_X_PIX 8
 #define TILE_Y_PIX 8
+
+#define FPS 60
+
+typedef union {
+    struct {
+        uint8_t bg_enable : 1;
+        uint8_t obj_enable : 1;
+        uint8_t obj_size : 1;
+        uint8_t bg_tile_map_show : 1;
+        uint8_t bg_window_tile_data : 1;
+        uint8_t window_enable : 1;
+        uint8_t window_tile_map_show : 1;
+        uint8_t lcd_enable : 1;
+    };
+    uint8_t lcd_control;
+} IO_LCD_LCDC;
+
+typedef union {
+    struct {
+        uint8_t mode : 2;
+        uint8_t match : 1;
+        uint8_t h_blank : 1;
+        uint8_t v_blank : 1;
+        uint8_t oam_int : 1;
+        uint8_t lyc_int : 1;
+        uint8_t unused : 1;
+    };
+    uint8_t status;
+} IO_LCD_STAT;
+
+
 
 struct Registers {
     union {
@@ -86,19 +118,21 @@ enum MBC {
 };
 
 class GBEmu {
-   private:
+private:
     bool stop;
     bool win_close;
     bool enable_debug;
     Registers reg;
+
     uint8_t* ram;
     uint8_t* rom;
+
     uint8_t scale;
+    uint16_t fps_lim;
+    uint16_t fps_max;
 
     // ppu内での状態管理に使う
-    uint8_t ppu_mode;
     uint8_t ppu_mode_clock;        //各モードでのクロック数のカウンタ(CPU命令数を基準に加算していく)
-    uint8_t ppu_line;              // ppuで描画した行数0 - 143(描画)、144-153(v-blank)
     uint16_t PPU_MODE_CLOCKS[4];   //各モードの処理にかかるクロック数
     uint16_t PPU_MODE_LINE_CLOCK;  // 1行の描画にかかるクロック数
 
@@ -129,19 +163,25 @@ class GBEmu {
     uint16_t pop(void);
 
     void _sdlinit(void);
+    void init_regs(void);
+    void init_io_ports(void);
     void cpu_step(void);
     void ppu_step(void);
 
     void init_win_ppu_tile(void);
     void display_win_ppu_tile(void);
-    void main_loop(void);
+    void sdl_loop(void);
     void sdl_event(void);
+    int cpu_loop(void);
 
     void init_win_debug_gui(void);
     void init_imgui(void);
     void destory_imgui(void);
     void destroy_win_debug_gui(void);
     void display_win_debug_gui(void);
+
+
+    static int cpu_loop_wrapper(void* data);
 
    public:
     GBEmu();
@@ -152,16 +192,16 @@ class GBEmu {
 enum IO_REG : uint16_t {
     LCDC = 0xff40,
     STAT = 0xff41,
-    SCY = 0xff42,
-    SCX = 0xff43,
-    LY = 0xff44,
-    LYC = 0xff45,
-    DMA = 0xff46,
-    BGP = 0xff47,
+    SCY =  0xff42,
+    SCX =  0xff43,
+    LY =   0xff44,
+    LYC =  0xff45,
+    DMA =  0xff46,
+    BGP =  0xff47,
     OBP0 = 0xff48,
     OBP1 = 0xff49,
-    WY = 0xff4a,
-    WX = 0xff4b
+    WY =   0xff4a,
+    WX =   0xff4b
 };
 
 enum PPU_MODE {

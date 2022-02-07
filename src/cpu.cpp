@@ -192,7 +192,7 @@ void GBEmu::cpu_step(){
             last_instr_clock = 8;
         break;
         default:
-            //end = true;
+            stop = true;
         break;
     }
 }

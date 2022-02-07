@@ -34,7 +34,7 @@ void GBEmu::init_win_debug_gui(void)
     ImGui_ImplSDL2_InitForSDLRenderer(win_debug_gui, rend_debug_gui);
     ImGui_ImplSDLRenderer_Init(rend_debug_gui);
 
-    int scale = 1;
+    float scale = 1.0f;
     SDL_RenderSetScale(rend_debug_gui, scale, scale);
 }
 
@@ -76,12 +76,14 @@ void GBEmu::display_win_debug_gui(void)
 
     {
         ImGui::Begin("LCD");
-        ImGui::Text("mode: %d\n", ppu_mode);
+        ImGui::Text("mode: %d\n", ((IO_LCD_STAT *) &ram[IO_REG::STAT])->mode);
         ImGui::Text("STAT[FF41]: %d($%02x)\n", ram[IO_REG::STAT], ram[IO_REG::STAT]);
         ImGui::Text("SXY[FF42] : %d($%02x)\n", ram[IO_REG::SCY], ram[IO_REG::SCY]);
         ImGui::Text("SCY[FF43] : %d($%02x)\n", ram[IO_REG::SCX], ram[IO_REG::SCX]);
         ImGui::Text("LY[FF44]  : %d($%02x)\n", ram[IO_REG::LY], ram[IO_REG::LY]);
         ImGui::Text("LYC[FF45] : %d($%02x)\n", ram[IO_REG::LYC], ram[IO_REG::LYC]);
+        ImGui::Separator();
+        ImGui::Text("Instruction per sec: %d\n", fps_max);
         ImGui::End();
     }
 
