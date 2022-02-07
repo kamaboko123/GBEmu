@@ -113,11 +113,12 @@ void GBEmu::ppu_step(void)
         case PPU_MODE_1:
             // v-blank
             // TODO: v-blank 割り込み実装
+            ((IO_IF_FLAG*)&ram[IO_REG::IF])->vblank = 1;
             if (ppu_mode_clock >= PPU_MODE_LINE_CLOCK) {
                 ppu_mode_clock = 0;
                 (*ppu_line)++;
 
-                if (*ppu_line == 154) {
+                if (*ppu_line > 153) {
                     lcd_status->mode = PPU_MODE_2;
                     *ppu_line = 0;
                 }

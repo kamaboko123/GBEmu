@@ -86,6 +86,51 @@ void GBEmu::display_win_debug_gui(void)
         ImGui::Text("Instruction per sec: %d\n", fps_max);
         ImGui::End();
     }
+    {
+        ImGui::Begin("BreakPoint");
+        for (int i = 0; i < BREAK_POINT_MAX; i++) {
+            ImGui::Text("[%02d] 0x%04x\n", i, debug_break_addr[i]);
+        }
+        ImGui::End();
+    }
+    {
+        ImGui::Begin("Stack");
+        for (uint16_t sp = reg.sp + 8; sp >= reg.sp - 8; sp -= 2) {
+            char p = (sp == reg.sp) ? '>' : ' ';
+            ImGui::Text("%c [0x%04x] 0x%04x\n", p, sp, read_mem_u16(sp));
+        }
+        ImGui::End();
+    }
+    {
+        ImGui::Begin("Exec Instruction");
+        ImGui::Text("pc    : 0x%04x", reg.pc);
+        ImGui::Text("opcode: 0x%02x", read_mem(reg.pc));
+        ImGui::Separator();
+        ImGui::Text("[Execution flags]");
+        ImGui::Checkbox("stop", &stop);
+        ImGui::Checkbox("step", &debug_step_exec);
+        ImGui::Checkbox("break", &debug_break);
+        ImGui::Separator();
+        ImGui::Text("[Run command] Run: F9  Trace: F7  Stop: F1  Break Enable/Disable: F10");
+        ImGui::End();
+    }
+    {
+        ImGui::Begin("Interrupt Flag");
+        IO_IF_FLAG* iflag = (IO_IF_FLAG*) & ram[IO_REG::IF];
+        bool _vblank = iflag->vblank;
+        bool _lcd_stat =iflag->lcd_stat;
+        bool _timer = iflag->timmer;
+        bool _serial = iflag->serial;
+        bool _joypad = iflag->joypad;
+
+        ImGui::Text("[Flags]");
+        ImGui::Checkbox("vblank", &_vblank);
+        ImGui::Checkbox("lcd   ", &_lcd_stat);
+        ImGui::Checkbox("timer ", &_timer);
+        ImGui::Checkbox("serial", &_serial);
+        ImGui::Checkbox("joypad", &_joypad);
+        ImGui::End();
+    }
 
     ImGui::Render();
     SDL_SetRenderDrawColor(rend_debug_gui, (Uint8)(clear_color.x * 255), (Uint8)(clear_color.y * 255), (Uint8)(clear_color.z * 255), (Uint8)(clear_color.w * 255));

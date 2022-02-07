@@ -11,6 +11,7 @@
 #include <cstring>
 #include <thread>
 #include <chrono>
+#include <mutex>
 
 #include "clib.hpp"
 #include "color.hpp"
@@ -37,18 +38,20 @@
 #define TILE_X_PIX 8
 #define TILE_Y_PIX 8
 
+#define BREAK_POINT_MAX 16
+
 #define FPS 60
 
 typedef union {
     struct {
-        uint8_t bg_enable : 1;
-        uint8_t obj_enable : 1;
-        uint8_t obj_size : 1;
-        uint8_t bg_tile_map_show : 1;
-        uint8_t bg_window_tile_data : 1;
-        uint8_t window_enable : 1;
-        uint8_t window_tile_map_show : 1;
-        uint8_t lcd_enable : 1;
+        bool bg_enable : 1;
+        bool obj_enable : 1;
+        bool obj_size : 1;
+        bool bg_tile_map_show : 1;
+        bool bg_window_tile_data : 1;
+        bool window_enable : 1;
+        bool window_tile_map_show : 1;
+        bool lcd_enable : 1;
     };
     uint8_t lcd_control;
 } IO_LCD_LCDC;
@@ -56,15 +59,27 @@ typedef union {
 typedef union {
     struct {
         uint8_t mode : 2;
-        uint8_t match : 1;
-        uint8_t h_blank : 1;
-        uint8_t v_blank : 1;
-        uint8_t oam_int : 1;
-        uint8_t lyc_int : 1;
-        uint8_t unused : 1;
+        bool match : 1;
+        bool h_blank : 1;
+        bool v_blank : 1;
+        bool oam_int : 1;
+        bool lyc_int : 1;
+        bool unused : 1;
     };
     uint8_t status;
 } IO_LCD_STAT;
+
+typedef union {
+    struct {
+        uint8_t unused : 3;
+        bool joypad : 1;
+        bool serial : 1;
+        bool timmer : 1;
+        bool lcd_stat : 1;
+        bool vblank: 1;
+    };
+    uint8_t status;
+} IO_IF_FLAG;
 
 
 
@@ -120,6 +135,7 @@ enum MBC {
 class GBEmu {
 private:
     bool stop;
+    bool exit_emu;
     bool win_close;
     bool enable_debug;
     Registers reg;
@@ -130,6 +146,12 @@ private:
     uint8_t scale;
     uint16_t fps_lim;
     uint16_t fps_max;
+
+    std::mutex mtx_stop;
+
+    bool debug_step_exec;
+    bool debug_break;
+    uint16_t debug_break_addr[BREAK_POINT_MAX];
 
     // ppu内での状態管理に使う
     uint8_t ppu_mode_clock;        //各モードでのクロック数のカウンタ(CPU命令数を基準に加算していく)
@@ -180,8 +202,8 @@ private:
     void destroy_win_debug_gui(void);
     void display_win_debug_gui(void);
 
-
     static int cpu_loop_wrapper(void* data);
+    bool is_break(uint16_t addr);
 
    public:
     GBEmu();
@@ -190,18 +212,19 @@ private:
 };
 
 enum IO_REG : uint16_t {
+    IF   = 0xff0f,
     LCDC = 0xff40,
     STAT = 0xff41,
-    SCY =  0xff42,
-    SCX =  0xff43,
-    LY =   0xff44,
-    LYC =  0xff45,
-    DMA =  0xff46,
-    BGP =  0xff47,
+    SCY  = 0xff42,
+    SCX  = 0xff43,
+    LY   = 0xff44,
+    LYC  = 0xff45,
+    DMA  = 0xff46,
+    BGP  = 0xff47,
     OBP0 = 0xff48,
     OBP1 = 0xff49,
-    WY =   0xff4a,
-    WX =   0xff4b
+    WY   = 0xff4a,
+    WX   = 0xff4b
 };
 
 enum PPU_MODE {

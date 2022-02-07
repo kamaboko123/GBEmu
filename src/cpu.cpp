@@ -9,8 +9,16 @@ void GBEmu::cpu_step(){
     uint16_t addr;
     int8_t i8a, i8b;
     uint8_t u8a, u8b, u8c;
- 
-    //printf("0x%04x: 0x%02x\n", reg.pc, read_mem(reg.pc));
+
+    if (is_break(reg.pc)) {
+        mtx_stop.lock();
+        stop = true;
+        mtx_stop.unlock();
+    }
+    
+    while (stop && !exit_emu);
+
+    printf("0x%04x: 0x%02x\n", reg.pc, read_mem(reg.pc));
     switch(read_mem(reg.pc)){
         case 0x00: //nop
             reg.pc += 1;
@@ -62,6 +70,7 @@ void GBEmu::cpu_step(){
             last_instr_clock = 8;
         break;
         case 0x28: //jr z, i8
+            //printf("a: 0x%02x  b: %02x  c: 0x%02x  z: %d\n", reg.a, reg.b, reg.c, reg.flags.z);
             i8a = read_mem(reg.pc + 1);
             reg.pc += 2;
             if(reg.flags.z == 1){
@@ -111,6 +120,11 @@ void GBEmu::cpu_step(){
             reg.pc += 1;
             last_instr_clock = 4;
         break;
+        case 0xc1: //pop bc
+            reg.bc = pop();
+            reg.pc += 1;
+            last_instr_clock = 12;
+            break;
         case 0xc3: //jmp
             reg.pc = read_mem_u16(reg.pc + 1);
             last_instr_clock = 16;
@@ -155,6 +169,7 @@ void GBEmu::cpu_step(){
             reg.a = read_mem(0xff00 + u8a);
             reg.pc += 2;
             last_instr_clock = 12;
+            printf("a: 0x%04x, c: 0x%04x\n", reg.a, reg.c);
         break;
         case 0xf1: //pop af
             reg.af = pop();
@@ -173,6 +188,12 @@ void GBEmu::cpu_step(){
         case 0xf5: //push af
             push(reg.af);
             reg.pc += 1;
+            last_instr_clock = 16;
+        break;
+        case 0xfa: //ld a, (u16)
+            addr = read_mem_u16(reg.pc + 2);
+            reg.a = read_mem(addr);
+            reg.pc += 3;
             last_instr_clock = 16;
         break;
         case 0xfe: //cp a, u8
@@ -195,4 +216,20 @@ void GBEmu::cpu_step(){
             stop = true;
         break;
     }
+    if (debug_step_exec) {
+        mtx_stop.lock();
+        stop = true;
+        mtx_stop.unlock();
+    }
+}
+
+bool GBEmu::is_break(uint16_t addr) {
+    if(debug_break){
+        for (int i = 0; i < BREAK_POINT_MAX; i++) {
+            if (debug_break_addr[i] != 0 && debug_break_addr[i] == addr) {
+                return true;
+            }
+        }
+    }
+    return false;
 }

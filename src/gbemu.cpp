@@ -31,8 +31,15 @@ void GBEmu::_init()
 
     clk_sec = (double)1.0f / _clk_rate;
 
-    //各モードを処理に要する秒数を、1クロックあたりの秒数で割って、各モードの処理に必要なクロックを求める
-    //ここで求めたクロック数を基準にPPUではモードを切り替えていく
+    // 参考: http://imrannazar.com/GameBoy-Emulation-in-JavaScript:-GPU-Timings
+    PPU_MODE_CLOCKS[PPU_MODE_0] = 204;
+    PPU_MODE_CLOCKS[PPU_MODE_1] = 456;
+    PPU_MODE_CLOCKS[PPU_MODE_2] = 80;
+    PPU_MODE_CLOCKS[PPU_MODE_3] = 172;
+
+    /*各モードを処理に要する秒数を、1クロックあたりの秒数で割って、各モードの処理に必要なクロックを求める
+    ここで求めたクロック数を基準にPPUではモードを切り替えていく
+    誤差で死んだので、一旦参考サイトから値拾ってくる。後で直す
     PPU_MODE_CLOCKS[PPU_MODE_0] = (uint16_t)(48.6e-6 / clk_sec);
     PPU_MODE_CLOCKS[PPU_MODE_1] = (uint16_t)(1.08e-3 / clk_sec);
     PPU_MODE_CLOCKS[PPU_MODE_2] = (uint16_t)(19.0e-6 / clk_sec);
@@ -47,8 +54,17 @@ void GBEmu::_init()
     printf("MODE1: %d clk\n", PPU_MODE_CLOCKS[PPU_MODE_1]);
     printf("MODE2: %d clk\n", PPU_MODE_CLOCKS[PPU_MODE_2]);
     printf("MODE3: %d clk\n", PPU_MODE_CLOCKS[PPU_MODE_3]);
+    */
     
     //lcd_status = (IO_LCD_STAT*)&ram[STAT];
+
+    for (int i = 0; i < BREAK_POINT_MAX; i++) debug_break_addr[i] = 0;
+    debug_break_addr[0] = 0x045c;
+    debug_break_addr[1] = 0x07ef;
+    debug_break_addr[2] = 0x073e;
+    debug_break_addr[3] = 0x037b;
+    debug_break_addr[4] = 0x0100;
+    debug_break = true;
 
     _sdlinit();
 }
@@ -104,8 +120,14 @@ void GBEmu::init_regs(void) {
 }
 
 void GBEmu::init_io_ports(void) {
+    //WHY: BGBだと1になってる
+    ((IO_LCD_STAT*)&ram[IO_REG::STAT])->unused = 1;
     ((IO_LCD_STAT*)&ram[IO_REG::STAT])->mode = 2;
+
     ram[IO_REG::LY] = 0;
+
+    //WHY: BGBだと初期化時に1になってる
+    ((IO_IF_FLAG*)&ram[IO_REG::IF])->vblank = 1;
 
     ram[0xFF05] = 0x00;  // TIMA
     ram[0xFF06] = 0x00;  // TMA
@@ -281,7 +303,7 @@ int GBEmu::cpu_loop_wrapper(void* data)
 
 int  GBEmu::cpu_loop(void) {
     // emulator steps
-    while (!stop) {
+    while (!exit_emu) {
         auto start = std::chrono::system_clock::now();
         
         cpu_step();
@@ -319,24 +341,39 @@ void GBEmu::sdl_event(void)
             ImGui_ImplSDL2_ProcessEvent(&e);
         }
         if (e.type == SDL_QUIT) {
-            stop = true;
+            exit_emu = true;
             win_close = true;
             break;
         }
         if (e.type == SDL_WINDOWEVENT && e.window.event == SDL_WINDOWEVENT_CLOSE) {
             // if (e.window.windowID == SDL_GetWindowID(win_ppu_tile) || e.window.windowID == SDL_GetWindowID(win_debug_gui))
-            stop = true;
+            exit_emu = true;
             win_close = true;
             break;
         }
         if (e.type == SDL_KEYDOWN) {
             if (e.key.keysym.sym == SDLK_ESCAPE) {
-                stop = true;
+                exit_emu = 1;
                 win_close = true;
-                break;
             }
             if (e.key.keysym.sym == SDLK_F1) {
                 stop = !stop;
+            }
+            if (e.key.keysym.sym == SDLK_F7) {
+                mtx_stop.lock();
+                stop = false;
+                debug_step_exec = true;
+                mtx_stop.unlock();
+            }
+            if (e.key.keysym.sym == SDLK_F9) {
+                mtx_stop.lock();
+                stop = false;
+                debug_step_exec = false;
+                mtx_stop.unlock();
+            }if (e.key.keysym.sym == SDLK_F10) {
+                mtx_stop.lock();
+                debug_break = !debug_break;
+                mtx_stop.unlock();
             }
         }
     }
