@@ -39,6 +39,9 @@
 #define TILE_Y_PIX 8
 
 #define BREAK_POINT_MAX 16
+//デバッグウインドウに表示するスタック周辺のメモリの広さ
+//スタックポインタを基準にここで指定した数値だけ上位と下位を2byte単位で表示する
+#define DEBUG_SHOW_STACK_COUNT  8
 
 #define FPS 60
 

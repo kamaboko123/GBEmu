@@ -95,7 +95,7 @@ void GBEmu::display_win_debug_gui(void)
     }
     {
         ImGui::Begin("Stack");
-        for (uint16_t sp = reg.sp + 8; sp >= reg.sp - 8; sp -= 2) {
+        for (uint16_t sp = reg.sp + DEBUG_SHOW_STACK_COUNT * 2; sp >= reg.sp - DEBUG_SHOW_STACK_COUNT * 2; sp -= 2) {
             char p = (sp == reg.sp) ? '>' : ' ';
             ImGui::Text("%c [0x%04x] 0x%04x\n", p, sp, read_mem_u16(sp));
         }
