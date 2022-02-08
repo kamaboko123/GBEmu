@@ -74,7 +74,7 @@ void GBEmu::write_mem(uint16_t addr, uint8_t data) {
     } else if (0xfea0 <= addr && addr <= 0xfeff) {
         // unused
     } else if (0xff00 <= addr && addr <= 0xff7f) {
-        // I/O register
+        // I/O register 
         ram[addr] = data;
     } else if (0xff80 <= addr && addr <= 0xfffe) {
         // HRAM

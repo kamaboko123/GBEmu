@@ -64,6 +64,7 @@ void GBEmu::display_win_ppu_tile(void)
     SDL_RenderPresent(rend_ppu_tile);
 }
 
+
 void GBEmu::ppu_step(void)
 {
     /* 参考
@@ -76,7 +77,16 @@ void GBEmu::ppu_step(void)
 
     //map drawed line to IO port
     uint8_t *ppu_line = &ram[IO_REG::LY];
-    IO_LCD_STAT *lcd_status = (IO_LCD_STAT*)&ram[STAT];
+    IO_LCD_STAT * lcd_status = (IO_LCD_STAT*)&ram[IO_REG::STAT];
+    IO_LCD_LCDC * lcd_control = (IO_LCD_LCDC*)&ram[IO_REG::LCDC];
+
+    if (lcd_control->lcd_enable == 0) {
+        //LCD無効時はmodeは0にしておくべき？
+        lcd_status->mode = 2;
+        ppu_line = 0;
+        ppu_mode_clock = 0;
+        return;
+    }
 
     switch (lcd_status->mode) {
         case PPU_MODE_2:
