@@ -157,7 +157,7 @@ private:
     uint16_t debug_break_addr[BREAK_POINT_MAX];
 
     // ppu内での状態管理に使う
-    uint8_t ppu_mode_clock;        //各モードでのクロック数のカウンタ(CPU命令数を基準に加算していく)
+    uint16_t ppu_mode_clock;        //各モードでのクロック数のカウンタ(CPU命令数を基準に加算していく)
     uint16_t PPU_MODE_CLOCKS[4];   //各モードの処理にかかるクロック数
     uint16_t PPU_MODE_LINE_CLOCK;  // 1行の描画にかかるクロック数
 
@@ -231,10 +231,10 @@ enum IO_REG : uint16_t {
 };
 
 enum PPU_MODE {
-    PPU_MODE_0,  // H-Blank
-    PPU_MODE_1,  // V-Blank
-    PPU_MODE_2,  // Read OAM
-    PPU_MODE_3   // Read VRAM and OAM
+    PPU_MODE_0 = 0,  // H-Blank
+    PPU_MODE_1 = 1,  // V-Blank
+    PPU_MODE_2 = 2,  // Read OAM
+    PPU_MODE_3 = 3   // Read VRAM and OAM
 };
 
 #endif

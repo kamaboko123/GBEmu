@@ -83,6 +83,7 @@ void GBEmu::display_win_debug_gui(void)
         ImGui::Text("LY[FF44]  : %d($%02x)\n", ram[IO_REG::LY], ram[IO_REG::LY]);
         ImGui::Text("LYC[FF45] : %d($%02x)\n", ram[IO_REG::LYC], ram[IO_REG::LYC]);
         ImGui::Separator();
+        ImGui::Text("ppu cnt: %d\n", ppu_mode_clock);
         ImGui::Text("Instruction per sec: %d\n", fps_max);
         ImGui::End();
     }

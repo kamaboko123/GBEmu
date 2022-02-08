@@ -37,6 +37,8 @@ void GBEmu::_init()
     PPU_MODE_CLOCKS[PPU_MODE_2] = 80;
     PPU_MODE_CLOCKS[PPU_MODE_3] = 172;
 
+    PPU_MODE_LINE_CLOCK = PPU_MODE_CLOCKS[PPU_MODE_2] + PPU_MODE_CLOCKS[PPU_MODE_3] + PPU_MODE_CLOCKS[PPU_MODE_0];
+
     /*各モードを処理に要する秒数を、1クロックあたりの秒数で割って、各モードの処理に必要なクロックを求める
     ここで求めたクロック数を基準にPPUではモードを切り替えていく
     誤差で死んだので、一旦参考サイトから値拾ってくる。後で直す
@@ -59,11 +61,10 @@ void GBEmu::_init()
     //lcd_status = (IO_LCD_STAT*)&ram[STAT];
 
     for (int i = 0; i < BREAK_POINT_MAX; i++) debug_break_addr[i] = 0;
-    debug_break_addr[0] = 0x045c;
-    debug_break_addr[1] = 0x07ef;
-    debug_break_addr[2] = 0x073e;
-    debug_break_addr[3] = 0x037b;
-    debug_break_addr[4] = 0x0100;
+    debug_break_addr[0] = 0x0100;
+    debug_break_addr[1] = 0x0749;
+    //debug_break_addr[1] = 0x0747;
+    //debug_break_addr[2] = 0x073e; //問題の箇所ここから
     debug_break = true;
 
     _sdlinit();
@@ -122,12 +123,19 @@ void GBEmu::init_regs(void) {
 void GBEmu::init_io_ports(void) {
     //WHY: BGBだと1になってる
     ((IO_LCD_STAT*)&ram[IO_REG::STAT])->unused = 1;
-    ((IO_LCD_STAT*)&ram[IO_REG::STAT])->mode = 2;
-
-    ram[IO_REG::LY] = 0;
 
     //WHY: BGBだと初期化時に1になってる
     ((IO_IF_FLAG*)&ram[IO_REG::IF])->vblank = 1;
+
+    //ppuカウンタ初期化
+    ppu_mode_clock = 0;
+    //BGB実装だと開始時点でmode1になってる様子
+    ((IO_LCD_STAT*)&ram[IO_REG::STAT])->mode = 1;
+    ram[IO_REG::LY] = 153;
+    //BGB実装だと0x100の時点でこの値っぽい
+    ppu_mode_clock = PPU_MODE_LINE_CLOCK - 56;
+
+
 
     ram[0xFF05] = 0x00;  // TIMA
     ram[0xFF06] = 0x00;  // TMA
