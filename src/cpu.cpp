@@ -81,8 +81,9 @@ void GBEmu::cpu_step(){
                 last_instr_clock = 8;
             }
         break;
-        case 0x2a: //ld, a (hl)
+        case 0x2a: //ldi, a (hl)
             reg.a = read_mem(reg.hl);
+            reg.hl++;
             reg.pc += 1;
             last_instr_clock = 8;
         break;

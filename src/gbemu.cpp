@@ -370,7 +370,8 @@ void GBEmu::sdl_event(void)
                 stop = false;
                 debug_step_exec = false;
                 mtx_stop.unlock();
-            }if (e.key.keysym.sym == SDLK_F10) {
+            }
+            if (e.key.keysym.sym == SDLK_F10) {
                 mtx_stop.lock();
                 debug_break = !debug_break;
                 mtx_stop.unlock();
