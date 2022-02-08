@@ -175,10 +175,6 @@ void GBEmu::cpu_step(){
         case 0xf1: //pop af
             reg.af = pop();
             reg.pc += 1;
-            reg.f = 0;
-
-            //TODO: POPのときのフラグの仕様わからん
-            if(reg.a == 0) reg.flags.z = 0;
             last_instr_clock = 12;
         break;
         case 0xf3: //di
