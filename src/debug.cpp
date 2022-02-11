@@ -75,14 +75,33 @@ void GBEmu::display_win_debug_gui(void)
     }
 
     {
+        bool lcdc[8];
+        lcdc[0] = ((IO_LCD_LCDC *)ram + IO_REG::LCDC)->bg_enable;
+        lcdc[1] = ((IO_LCD_LCDC *)ram + IO_REG::LCDC)->obj_enable;
+        lcdc[2] = ((IO_LCD_LCDC *)ram + IO_REG::LCDC)->obj_size;
+        lcdc[3] = ((IO_LCD_LCDC *)ram + IO_REG::LCDC)->bg_tile_map_show;
+        lcdc[4] = ((IO_LCD_LCDC *)ram + IO_REG::LCDC)->bg_window_tile_data;
+        lcdc[5] = ((IO_LCD_LCDC *)ram + IO_REG::LCDC)->window_enable;
+        lcdc[6] = ((IO_LCD_LCDC *)ram + IO_REG::LCDC)->bg_tile_map_show;
+        lcdc[7] = ((IO_LCD_LCDC *)ram + IO_REG::LCDC)->lcd_enable;
+
         ImGui::Begin("LCD");
-        ImGui::Text("mode: %d\n", ((IO_LCD_STAT *) &ram[IO_REG::STAT])->mode);
+        ImGui::Text("LCDC[FF40]: %d($%02x)\n", ram[IO_REG::LCDC], ram[IO_REG::LCDC]);
         ImGui::Text("STAT[FF41]: %d($%02x)\n", ram[IO_REG::STAT], ram[IO_REG::STAT]);
         ImGui::Text("SXY[FF42] : %d($%02x)\n", ram[IO_REG::SCY], ram[IO_REG::SCY]);
         ImGui::Text("SCY[FF43] : %d($%02x)\n", ram[IO_REG::SCX], ram[IO_REG::SCX]);
         ImGui::Text("LY[FF44]  : %d($%02x)\n", ram[IO_REG::LY], ram[IO_REG::LY]);
         ImGui::Text("LYC[FF45] : %d($%02x)\n", ram[IO_REG::LYC], ram[IO_REG::LYC]);
         ImGui::Separator();
+        ImGui::Checkbox("lcd on", &lcdc[7]);
+        ImGui::Text("win tile map: %s\n", lcdc[6] == 0 ? "9800 - 9BFF" : "9C00 - 9FFF");
+        ImGui::Checkbox("win", &lcdc[5]);
+        ImGui::Text("bg tile map show: %s\n", lcdc[4] == 0 ? "8800 - 97FF" : "8000 - 8FFF");
+        ImGui::Text("bg window tile data: %s\n", lcdc[3] == 0 ? "8800 - 9BFF" : "9C00 - 9FFF");
+        ImGui::Text("obj", lcdc[3] == 0 ? "8 x 8" : "8 x 16");
+        ImGui::Checkbox("bg(on)", &lcdc[7]);
+        ImGui::Separator();
+        ImGui::Text("mode: %d\n", ((IO_LCD_STAT*)&ram[IO_REG::STAT])->mode);
         ImGui::Text("ppu cnt: %d\n", ppu_mode_clock);
         ImGui::Text("Instruction per sec: %d\n", fps_max);
         ImGui::End();
@@ -97,6 +116,7 @@ void GBEmu::display_win_debug_gui(void)
     {
         ImGui::Begin("Stack");
         for (uint16_t sp = reg.sp + DEBUG_SHOW_STACK_COUNT * 2; sp >= reg.sp - DEBUG_SHOW_STACK_COUNT * 2; sp -= 2) {
+            if (sp <= (uint16_t)ram || sp >= (uint16_t)ram + MEM_SIZE) break;
             char p = (sp == reg.sp) ? '>' : ' ';
             ImGui::Text("%c [0x%04x] 0x%04x\n", p, sp, read_mem_u16(sp));
         }

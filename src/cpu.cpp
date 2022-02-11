@@ -34,6 +34,11 @@ void GBEmu::cpu_step(){
             reg.pc += 1;
             last_instr_clock = 8;
         break;
+        case 0x06: //ld b, u8
+            reg.b = read_mem(reg.pc + 1);
+            reg.pc += 2;
+            last_instr_clock = 8;
+            break;
         case 0x18: //jr u8
             i8a = read_mem(reg.pc + 1);
             /*
@@ -70,7 +75,6 @@ void GBEmu::cpu_step(){
             last_instr_clock = 8;
         break;
         case 0x28: //jr z, i8
-            //printf("a: 0x%02x  b: %02x  c: 0x%02x  z: %d\n", reg.a, reg.b, reg.c, reg.flags.z);
             i8a = read_mem(reg.pc + 1);
             reg.pc += 2;
             if(reg.flags.z == 1){
@@ -130,6 +134,18 @@ void GBEmu::cpu_step(){
             reg.pc = read_mem_u16(reg.pc + 1);
             last_instr_clock = 16;
         break;
+        case 0xc4: //call nz, u16
+            addr = read_mem_u16(reg.pc + 1);
+            reg.pc += 3;
+            if (reg.flags.z == 0) {
+                push(reg.pc);
+                reg.pc = addr;
+                last_instr_clock = 24;
+            }
+            else {
+                last_instr_clock = 16;
+            }
+            break;
         case 0xc5: //push bc
             push(reg.bc);
             reg.pc += 1;
@@ -159,6 +175,16 @@ void GBEmu::cpu_step(){
             reg.pc += 1;
             last_instr_clock = 16;
         break;
+        case 0xe6: //and a, u8
+            reg.a &= read_mem(reg.pc + 1);
+            reg.f = 0;
+            reg.flags.h = 1;
+            if (reg.a == 0) {
+                reg.flags.z = 1;
+            }
+            reg.pc += 2;
+            last_instr_clock = 8;
+        break;
         case 0xea: //ld (u16), a
             addr = read_mem_u16(reg.pc + 1);
             write_mem(addr, reg.a);
@@ -170,7 +196,6 @@ void GBEmu::cpu_step(){
             reg.a = read_mem(0xff00 + u8a);
             reg.pc += 2;
             last_instr_clock = 12;
-            printf("a: 0x%04x, c: 0x%04x\n", reg.a, reg.c);
         break;
         case 0xf1: //pop af
             reg.af = pop();
