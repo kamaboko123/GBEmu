@@ -24,6 +24,7 @@ void GBEmu::_init()
 {
     ram = new uint8_t[MEM_SIZE];
     rom = new uint8_t[ROM_SIZE];
+    ram_bank = new uint8_t[RAM_BANK_SIZE * RAM_BANK_COUNT];
 
     // PPUの各モード間のクロック数計算
     double _clk_rate = CLOCK_RATE;
@@ -123,6 +124,8 @@ void GBEmu::init_regs(void) {
 }
 
 void GBEmu::init_io_ports(void) {
+    mbc_state.ram_enable = false;
+
     //WHY: BGBだと1になってる
     ((IO_LCD_STAT*)&ram[IO_REG::STAT])->unused = 1;
 
@@ -174,6 +177,11 @@ void GBEmu::init_io_ports(void) {
 
 void GBEmu::run(const char rom_file_path[])
 {
+    mbc_state.type = MBC::MBC1;
+    mbc_state.ram_enable = false;
+    mbc_state.rom_bank_n = 0;
+    mbc_state.bank_mode_sel = 0;
+
     memset(ram, 0, MEM_SIZE);
     memset(rom, 0, ROM_SIZE);
 
@@ -212,8 +220,6 @@ void GBEmu::run(const char rom_file_path[])
         }
 
     }
-
-    mbc = MBC::MBC0;
 
     ram[0x8000] = 0x18;
     ram[0x8001] = 0x18;

@@ -25,6 +25,9 @@
 
 #define MEM_SIZE 1024 * 1024
 #define ROM_SIZE 1024 * 1024
+#define ROM_BANK_SIZE 0x4000
+#define RAM_BANK_SIZE  0x2000
+#define RAM_BANK_COUNT 4
 
 #define BOOT_LOGO_HEAD 0x104
 #define BOOT_LOGO_END 0x133
@@ -128,11 +131,20 @@ struct Registers {
     uint16_t pc;
 };
 
-enum MBC {
+
+enum MBC: uint8_t {
     MBC0,  // NO MBC
     MBC1,
     MBC2,
     MBC3
+};
+
+struct MBCState {
+    MBC type;
+    bool ram_enable;
+    uint8_t rom_bank_n;    //7bit(2 + 5bit)
+    uint8_t ram_bank_n;    //2bit
+    uint8_t bank_mode_sel;
 };
 
 class GBEmu {
@@ -143,8 +155,11 @@ private:
     bool enable_debug;
     Registers reg;
 
+    struct MBCState mbc_state;
+
     uint8_t* ram;
     uint8_t* rom;
+    uint8_t* ram_bank;
 
     uint8_t scale;
     uint16_t fps_lim;
@@ -166,7 +181,6 @@ private:
     uint8_t last_instr_clock;
 
     uint32_t tick;
-    MBC mbc;
 
     SDL_Window* win_debug_gui;
     SDL_Renderer* rend_debug_gui;
