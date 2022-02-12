@@ -66,6 +66,7 @@ void GBEmu::_init()
     //debug_break_addr[1] = 0x0747;
     //debug_break_addr[2] = 0x073e; //問題の箇所ここから
     debug_break_addr[2] = 0x0753;
+    debug_break_addr[2] = 0x0784;
     debug_break = true;
 
     _sdlinit();

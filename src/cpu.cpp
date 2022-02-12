@@ -91,6 +91,17 @@ void GBEmu::cpu_step(){
             reg.pc += 1;
             last_instr_clock = 8;
         break;
+        case 0x2c: //inc l
+            u8b = (reg.l & 0x8) >> 3; // bit 4 before increment
+            reg.l++;
+            reg.pc += 1;
+            u8c = (reg.l & 0x8) >> 3; // bit 4 after increment
+            reg.flags.n = 0;
+            if (reg.l == 0) reg.flags.z = 1;
+            if (u8b != u8c) reg.flags.h = 1; //TODO: わからん
+
+            last_instr_clock = 4;
+            break;
         case 0x31: //ld sp, u16
             reg.sp = read_mem_u16(reg.pc + 1);
             reg.pc += 3;
@@ -101,6 +112,11 @@ void GBEmu::cpu_step(){
             reg.pc += 2;
             last_instr_clock = 8;
         break;
+        case 0x77: //ld (hl), a
+            write_mem(reg.hl, reg.a);
+            reg.pc += 1;
+            last_instr_clock = 8;
+            break;
         case 0x78: //ld a, b
             reg.a = reg.b;
             reg.pc += 1;
@@ -223,13 +239,13 @@ void GBEmu::cpu_step(){
             u8b = (reg.a & 0x8) >> 3; // bit 4 before subtract
             u8c = ((reg.a - u8a) & 0x8) >> 3; // bit 4 after subtract
 
-            //減産前後でbit 4の符号が変わってればhalf carry立てていい？
+            //減算前後でbit 4の符号が変わってればhalf carry立てていい？
 
             reg.f = 0;
             reg.flags.n = 1;
             if(reg.a == u8a) reg.flags.z = 1;
             if(reg.a < u8a) reg.flags.c = 1;
-            if(u8b != u8c) reg.flags.h = 0; //TODO: わからん
+            if(u8b != u8c) reg.flags.h = 1; //TODO: わからん
 
             reg.pc += 2;
             last_instr_clock = 8;
