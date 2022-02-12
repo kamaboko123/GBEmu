@@ -32,8 +32,10 @@ uint8_t GBEmu::read_mem(uint16_t addr) {
     } else if (0xa000 <= addr && addr <= 0xbfff) {
         // 8KB cartridge ram
         if (mbc_state.type == MBC::MBC1) {
-            uint32_t offset = mbc_state.ram_bank_n * RAM_BANK_SIZE;
-            return *(ram_bank + offset + addr - 0xa000);
+            if (mbc_state.ram_enable) {
+                uint32_t offset = mbc_state.ram_bank_n * RAM_BANK_SIZE;
+                return *(ram_bank + offset + addr - 0xa000);
+            }
         }
     } else if (0xc000 <= addr && addr <= 0xcfff) {
         // wram(bank0)
@@ -85,10 +87,11 @@ void GBEmu::write_mem(uint16_t addr, uint8_t data) {
                 // ・RAMバンクの選択
                 // ・ROMバンクの上位2bitを切り替える
                 if (mbc_state.bank_mode_sel == 0) { //rom bank
-                    mbc_state.rom_bank_n = (data & 0x60) + (mbc_state.rom_bank_n & 0x1f);
+                    mbc_state.rom_bank_n = (data & 0x03) << 5 + (mbc_state.rom_bank_n & 0x1f);
                 }
                 else if (mbc_state.bank_mode_sel == 1) { //ram bank
-                    //TODO: 仕様調べて実装する
+                    //REVIEW: これでいいのかわからん(特にMBC3)
+                    mbc_state.ram_bank_n = data & 0x03;
                 }
 
             }
@@ -107,8 +110,10 @@ void GBEmu::write_mem(uint16_t addr, uint8_t data) {
     } else if (0xa000 <= addr && addr <= 0xbfff) {
         // 8KB cartridge ram
         if (mbc_state.type == MBC::MBC1) {
-            uint32_t offset = mbc_state.ram_bank_n + RAM_BANK_SIZE;
-            *(ram_bank + offset + addr - 0xa000) = data;
+            if (mbc_state.ram_enable) {
+                uint32_t offset = mbc_state.ram_bank_n + RAM_BANK_SIZE;
+                *(ram_bank + offset + addr - 0xa000) = data;
+            }
         }
     } else if (0xc000 <= addr && addr <= 0xcfff) {
         // wram(bank0)
