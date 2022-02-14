@@ -33,8 +33,8 @@ uint8_t GBEmu::read_mem(uint16_t addr) {
         // 8KB cartridge ram
         if (mbc_state.type == MBC::MBC1) {
             if (mbc_state.ram_enable) {
-                uint32_t offset = mbc_state.ram_bank_n * RAM_BANK_SIZE;
-                return *(ram_bank + offset + addr - 0xa000);
+                uint32_t offset = mbc_state.ram_bank_n * CARTRIDGE_RAM_BANK_SIZE;
+                return *(cartridge_ram + offset + addr - 0xa000);
             }
         }
     } else if (0xc000 <= addr && addr <= 0xcfff) {
@@ -79,7 +79,9 @@ void GBEmu::write_mem(uint16_t addr, uint8_t data) {
                     // したがってバンク番号0x20, 0x40, 0x60は使用不可である
                     data = 1;
                 }
-                mbc_state.rom_bank_n = (mbc_state.rom_bank_n & 0x60) + (data & 0x1f);
+                //下位5bitのみを書き換える
+                //0x30でマスクして上位2bit取り出して、下位5bitと足し合わせる
+                mbc_state.rom_bank_n = (mbc_state.rom_bank_n & 0x30) + (data & 0x1f);
             }
             else if (0x4000 <= addr && addr <= 0x5fff) {
                 // セカンダリバンクレジスタ
@@ -87,6 +89,7 @@ void GBEmu::write_mem(uint16_t addr, uint8_t data) {
                 // ・RAMバンクの選択
                 // ・ROMバンクの上位2bitを切り替える
                 if (mbc_state.bank_mode_sel == 0) { //rom bank
+                    //上位2bitを書き換える、0x03でマスクして2bit取り出したものをシフトして上位2bit分 + 既存下位5bit分
                     mbc_state.rom_bank_n = (data & 0x03) << 5 + (mbc_state.rom_bank_n & 0x1f);
                 }
                 else if (mbc_state.bank_mode_sel == 1) { //ram bank
@@ -111,8 +114,11 @@ void GBEmu::write_mem(uint16_t addr, uint8_t data) {
         // 8KB cartridge ram
         if (mbc_state.type == MBC::MBC1) {
             if (mbc_state.ram_enable) {
-                uint32_t offset = mbc_state.ram_bank_n + RAM_BANK_SIZE;
-                *(ram_bank + offset + addr - 0xa000) = data;
+                //カートリッジ側のRAMアクセス
+                //エミュレータ上では初期化時にある程度の大きさでメモリ確保しておき、アクセス時にバンクっぽく振る舞うようにする
+                //確保したメモリ空間の先頭アドレスを基準に、バンクのサイズ * バンク番号でオフセットする(バンク内のアドレスとするので0xa000を引く)
+                uint32_t offset = mbc_state.ram_bank_n + CARTRIDGE_RAM_BANK_SIZE;
+                *(cartridge_ram + offset + addr - 0xa000) = data;
             }
         }
     } else if (0xc000 <= addr && addr <= 0xcfff) {
@@ -137,4 +143,18 @@ void GBEmu::write_mem(uint16_t addr, uint8_t data) {
     } else {
         // none
     }
+}
+
+void GBEmu::push(uint16_t data)
+{
+    reg.sp -= 2;
+    write_mem_u16(reg.sp, data);
+    // printf("!! 0x%04x:0x%04x\n", reg.sp, read_mem_u16(reg.sp));
+}
+
+uint16_t GBEmu::pop()
+{
+    uint16_t data = read_mem_u16(reg.sp);
+    reg.sp += 2;
+    return data;
 }

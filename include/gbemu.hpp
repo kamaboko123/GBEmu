@@ -26,8 +26,9 @@
 #define MEM_SIZE 1024 * 1024
 #define ROM_SIZE 1024 * 1024
 #define ROM_BANK_SIZE 0x4000
-#define RAM_BANK_SIZE  0x2000
-#define RAM_BANK_COUNT 4
+
+#define CARTRIDGE_RAM_BANK_SIZE  0x2000
+#define CARTRIDGE_RAM_BANK_COUNT 4
 
 #define BOOT_LOGO_HEAD 0x104
 #define BOOT_LOGO_END 0x133
@@ -159,7 +160,7 @@ private:
 
     uint8_t* ram;
     uint8_t* rom;
-    uint8_t* ram_bank;
+    uint8_t* cartridge_ram;
 
     uint8_t scale;
     uint16_t fps_lim;

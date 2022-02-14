@@ -18,13 +18,14 @@ GBEmu::~GBEmu()
 
     delete[] ram;
     delete[] rom;
+    delete[] cartridge_ram;
 }
 
 void GBEmu::_init()
 {
     ram = new uint8_t[MEM_SIZE];
     rom = new uint8_t[ROM_SIZE];
-    ram_bank = new uint8_t[RAM_BANK_SIZE * RAM_BANK_COUNT];
+    cartridge_ram = new uint8_t[CARTRIDGE_RAM_BANK_SIZE * CARTRIDGE_RAM_BANK_COUNT];
 
     // PPUの各モード間のクロック数計算
     double _clk_rate = CLOCK_RATE;
