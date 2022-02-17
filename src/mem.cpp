@@ -45,6 +45,7 @@ uint8_t GBEmu::read_mem(uint16_t addr) {
         return ram[addr];
     } else if (0xe000 <= addr && addr <= 0xfdff) {
         // mirror 0xc000 - 0xddff
+        return ram[addr - 0xe000 + 0xc000];
     } else if (0xfe00 <= addr && addr <= 0xfe9f) {
         // oam
     } else if (0xfea0 <= addr && addr <= 0xfeff) {
@@ -129,13 +130,19 @@ void GBEmu::write_mem(uint16_t addr, uint8_t data) {
         ram[addr] = data;
     } else if (0xe000 <= addr && addr <= 0xfdff) {
         // mirror 0xc000 - 0xddff
+        //書き込みはない？
     } else if (0xfe00 <= addr && addr <= 0xfe9f) {
         // oam
     } else if (0xfea0 <= addr && addr <= 0xfeff) {
         // unused
     } else if (0xff00 <= addr && addr <= 0xff7f) {
-        // I/O register 
-        ram[addr] = data;
+        // I/O register
+        if (addr == IO_REG::DMA) {
+            //DMA転送(RAM -> OAM[0xfe00-0xfe9f])
+        }
+        else {
+            ram[addr] = data;
+        }
     } else if (0xff80 <= addr && addr <= 0xfffe) {
         // HRAM
     } else if (0xffff) {
