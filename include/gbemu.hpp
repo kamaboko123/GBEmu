@@ -222,6 +222,9 @@ private:
 
     static int cpu_loop_wrapper(void* data);
     bool is_break(uint16_t addr);
+    
+    bool half_carry_add(uint8_t a, uint8_t b);
+    bool half_carry_sub(uint8_t a, uint8_t b);
 
    public:
     GBEmu();

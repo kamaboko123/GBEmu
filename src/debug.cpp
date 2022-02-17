@@ -183,21 +183,21 @@ void GBEmu::display_win_ppu_tile(void)
     SDL_RenderClear(rend_ppu_tile);
 
     /*
-        �^�C���̃f�R�[�h����
-        �^�C���� 8 * 8 [px]�A2bit�J���[(4�F)
-        �^�C��1��16byte�ō\�������
-        2byte��1�s�Ƃ��āA8�s���Ȃ̂�2 * 8 = 16 byte
+        タイルのデコード処理
+        タイルは 8 * 8 [px]、2bitカラー(4色)
+        タイル1つは16byteで構成される
+        2byteを1行として、8行分なので2 * 8 = 16 byte
 
-        �e�s�̃f�R�[�h��
-        �E2�i���ɕϊ�
+        各行のデコード例
+        ・2進数に変換
         byte0: 0xab -> 10101011
         byte1: 0xcc -> 11001100
-        �E�e�r�b�g��byte0�������ʁAbyte1������ʂƂ��āA2bit�ŐF������
+        ・各ビットでbyte0側を下位、byte1側を上位として、2bitで色を示す
         11, 10, 01, 00, 11, 10, 01, 01 => 3, 2, 1, 0, 3, 2, 1, 1
-        �E�F�̓p���b�g�Œ�`�����B
-        �@�ʏ��0(��)�A1(�����O���[)�A2(�Z���O���[)�A3(��)
-        �@�w�肳�ꂽ�F�ŉ�������8�s�N�Z�����h��A���̍s�ȍ~�����l�ɌJ��Ԃ�
-        �@8�s��(16byte��)��1�^�C���ƂȂ�
+        ・色はパレットで定義される。
+        　通常は0(白)、1(薄いグレー)、2(濃いグレー)、3(黒)
+        　指定された色で横向きに8ピクセル分塗り、次の行以降も同様に繰り返す
+        　8行分(16byte分)で1タイルとなる
     */
     GBColor col;
 
@@ -205,8 +205,8 @@ void GBEmu::display_win_ppu_tile(void)
     for (uint16_t tile_no = TILE_NO_MIN; tile_no <= TILE_NO_MAX; tile_no++) {
         for (uint8_t y = 0; y < TILE_Y_PIX; y++) {
             uint16_t addr = VRAM_TILE_HEAD + (16 * tile_no) + (y * 2);
-            l = read_mem(addr);      //���ʂ��i�[����Ă���o�C�g
-            h = read_mem(addr + 1);  //��ʂ��i�[����Ă���o�C�g
+            l = read_mem(addr);      //下位が格納されているバイト
+            h = read_mem(addr + 1);  //上位が格納されているバイト
             for (int x = 0; x < TILE_X_PIX; x++) {
                 l_bit = clib::getBit(l, TILE_X_PIX - x - 1);
                 h_bit = clib::getBit(h, TILE_X_PIX - x - 1);

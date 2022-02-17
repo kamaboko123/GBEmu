@@ -74,6 +74,17 @@ void GBEmu::cpu_step(){
             reg.pc += 1;
             last_instr_clock = 8;
         break;
+        case 0x24: //inc h
+            u8a = reg.h;
+            reg.h++;
+            reg.pc += 1;
+
+            reg.flags.n = 0;
+            if (reg.h == 0) reg.flags.z = 1;
+            if (half_carry_add(u8a, 1)) reg.flags.h = 1;
+
+            last_instr_clock = 4;
+            break;
         case 0x28: //jr z, i8
             i8a = read_mem(reg.pc + 1);
             reg.pc += 2;
@@ -92,13 +103,13 @@ void GBEmu::cpu_step(){
             last_instr_clock = 8;
         break;
         case 0x2c: //inc l
-            u8b = (reg.l & 0x8) >> 3; // bit 4 before increment
+            u8a = reg.l;
             reg.l++;
             reg.pc += 1;
-            u8c = (reg.l & 0x8) >> 3; // bit 4 after increment
+
             reg.flags.n = 0;
             if (reg.l == 0) reg.flags.z = 1;
-            if (u8b != u8c) reg.flags.h = 1; //TODO: わからん
+            if (half_carry_add(u8a, 1)) reg.flags.h = 1;
 
             last_instr_clock = 4;
             break;
@@ -236,16 +247,12 @@ void GBEmu::cpu_step(){
         break;
         case 0xfe: //cp a, u8
             u8a = read_mem(reg.pc + 1);
-            u8b = (reg.a & 0x8) >> 3; // bit 4 before subtract
-            u8c = ((reg.a - u8a) & 0x8) >> 3; // bit 4 after subtract
-
-            //減算前後でbit 4の符号が変わってればhalf carry立てていい？
 
             reg.f = 0;
             reg.flags.n = 1;
             if(reg.a == u8a) reg.flags.z = 1;
             if(reg.a < u8a) reg.flags.c = 1;
-            if(u8b != u8c) reg.flags.h = 1; //TODO: わからん
+            if(half_carry_sub(reg.a, u8a)) reg.flags.h = 1;
 
             reg.pc += 2;
             last_instr_clock = 8;
@@ -270,4 +277,13 @@ bool GBEmu::is_break(uint16_t addr) {
         }
     }
     return false;
+}
+
+inline bool GBEmu::half_carry_add(uint8_t a, uint8_t b) {
+    //下位4bitを取り出したものを計算し、bit4を取り出して繰り上がったかを判断する
+    return ((a & 0x0f) + (b & 0x0f)) & 0x10 == 0x10;
+}
+
+inline bool GBEmu::half_carry_sub(uint8_t a, uint8_t b) {
+    return ((a & 0x0f) - (b & 0x0f)) & 0x10 == 0x10;
 }
