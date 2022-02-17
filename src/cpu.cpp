@@ -29,6 +29,17 @@ void GBEmu::cpu_step(){
             reg.pc += 3;
             last_instr_clock = 12;
         break;
+        case 0x05: //dec b
+            u8a = reg.b;
+            reg.b--;
+
+            reg.flags.n = 1;
+            reg.flags.z = (reg.b == 0) ? 1 : 0;
+            reg.flags.h = half_carry_sub(u8a, 1) ? 1 : 0;
+
+            reg.pc += 1;
+            last_instr_clock = 4;
+            break;
         case 0x03: //inc bc
             reg.bc++;
             reg.pc += 1;
@@ -80,8 +91,8 @@ void GBEmu::cpu_step(){
             reg.pc += 1;
 
             reg.flags.n = 0;
-            if (reg.h == 0) reg.flags.z = 1;
-            if (half_carry_add(u8a, 1)) reg.flags.h = 1;
+            reg.flags.z = (reg.h == 0) ? 1 : 0;
+            reg.flags.h = half_carry_add(u8a, 1) ? 1 : 0;
 
             last_instr_clock = 4;
             break;
@@ -108,8 +119,8 @@ void GBEmu::cpu_step(){
             reg.pc += 1;
 
             reg.flags.n = 0;
-            if (reg.l == 0) reg.flags.z = 1;
-            if (half_carry_add(u8a, 1)) reg.flags.h = 1;
+            reg.flags.z = (reg.l == 0) ? 1 : 0;
+            reg.flags.h = half_carry_add(u8a, 1) ? 1 : 0;
 
             last_instr_clock = 4;
             break;
@@ -146,9 +157,7 @@ void GBEmu::cpu_step(){
         case 0xb1: //or c
             reg.a |= reg.c;
             reg.f = 0;
-            if(reg.a == 0x00){
-                reg.flags.z = 1;
-            }
+            reg.flags.z = (reg.a == 0) ? 1 : 0;
             reg.pc += 1;
             last_instr_clock = 4;
         break;
@@ -206,9 +215,7 @@ void GBEmu::cpu_step(){
             reg.a &= read_mem(reg.pc + 1);
             reg.f = 0;
             reg.flags.h = 1;
-            if (reg.a == 0) {
-                reg.flags.z = 1;
-            }
+            reg.flags.z = (reg.a == 0) ? 1 : 0;
             reg.pc += 2;
             last_instr_clock = 8;
         break;
@@ -248,11 +255,10 @@ void GBEmu::cpu_step(){
         case 0xfe: //cp a, u8
             u8a = read_mem(reg.pc + 1);
 
-            reg.f = 0;
             reg.flags.n = 1;
-            if(reg.a == u8a) reg.flags.z = 1;
-            if(reg.a < u8a) reg.flags.c = 1;
-            if(half_carry_sub(reg.a, u8a)) reg.flags.h = 1;
+            reg.flags.z = (reg.a == u8a) ? 1 : 0;
+            reg.flags.c = (reg.a < u8a) ? 1 : 0;
+            reg.flags.h = half_carry_sub(reg.a, u8a) ? 1 : 0;
 
             reg.pc += 2;
             last_instr_clock = 8;
@@ -281,9 +287,9 @@ bool GBEmu::is_break(uint16_t addr) {
 
 inline bool GBEmu::half_carry_add(uint8_t a, uint8_t b) {
     //下位4bitを取り出したものを計算し、bit4を取り出して繰り上がったかを判断する
-    return ((a & 0x0f) + (b & 0x0f)) & 0x10 == 0x10;
+    return (((a & 0x0f) + (b & 0x0f)) & 0x10) == 0x10;
 }
 
 inline bool GBEmu::half_carry_sub(uint8_t a, uint8_t b) {
-    return ((a & 0x0f) - (b & 0x0f)) & 0x10 == 0x10;
+    return (((a & 0x0f) - (b & 0x0f)) & 0x10) == 0x10;
 }
