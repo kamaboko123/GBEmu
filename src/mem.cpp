@@ -91,7 +91,7 @@ void GBEmu::write_mem(uint16_t addr, uint8_t data) {
                 // ・ROMバンクの上位2bitを切り替える
                 if (mbc_state.bank_mode_sel == 0) { //rom bank
                     //上位2bitを書き換える、0x03でマスクして2bit取り出したものをシフトして上位2bit分 + 既存下位5bit分
-                    mbc_state.rom_bank_n = (data & 0x03) << 5 + (mbc_state.rom_bank_n & 0x1f);
+                    mbc_state.rom_bank_n = ((data & 0x03) << 5) + (mbc_state.rom_bank_n & 0x1f);
                 }
                 else if (mbc_state.bank_mode_sel == 1) { //ram bank
                     //REVIEW: これでいいのかわからん(特にMBC3)

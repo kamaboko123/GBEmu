@@ -38,7 +38,7 @@
 #define VRAM_TILE_END 0x97FF
 
 #define TILE_NO_MIN 0
-#define TILE_NO_MAX 191
+#define TILE_NO_MAX 384
 #define TILE_X_PIX 8
 #define TILE_Y_PIX 8
 
@@ -162,7 +162,6 @@ private:
     uint8_t* rom;
     uint8_t* cartridge_ram;
 
-    uint8_t scale;
     uint16_t fps_lim;
     uint16_t fps_max;
 
@@ -189,6 +188,9 @@ private:
     SDL_Window* win_ppu_tile;
     SDL_Renderer* rend_ppu_tile;
 
+    SDL_Window* win_lcd;
+    SDL_Renderer* rend_lcd;
+
     static GBPalette palette;
 
     void dump_rom(uint32_t from, uint32_t bytes);
@@ -210,6 +212,8 @@ private:
 
     void init_win_ppu_tile(void);
     void display_win_ppu_tile(void);
+    void init_win_lcd(void);
+    void display_win_lcd(void);
     void sdl_loop(void);
     void sdl_event(void);
     int cpu_loop(void);

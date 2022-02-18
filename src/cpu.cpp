@@ -50,6 +50,21 @@ void GBEmu::cpu_step(){
             reg.pc += 2;
             last_instr_clock = 8;
             break;
+        case 0x0e: //ld c, u8
+            reg.c = read_mem(reg.pc + 1);
+            reg.pc += 2;
+            last_instr_clock = 8;
+            break;
+        case 0x11: //ld de, u16
+            reg.de = read_mem_u16(reg.pc + 1);
+            reg.pc += 3;
+            last_instr_clock = 12;
+            break;
+        case 0x13: //inc de
+            reg.de++;
+            reg.pc += 1;
+            last_instr_clock = 8;
+            break;
         case 0x18: //jr u8
             i8a = read_mem(reg.pc + 1);
             /*
@@ -64,6 +79,11 @@ void GBEmu::cpu_step(){
             reg.pc += i8a;
             last_instr_clock = 12;
         break;
+        case 0x1a: //ld a, (de)
+            reg.a = read_mem(reg.de);
+            reg.pc += 1;
+            last_instr_clock = 8;
+            break;
         case 0x20: //jr if not zero i8
             i8a = read_mem(reg.pc + 1);
             reg.pc += 2;
@@ -80,6 +100,12 @@ void GBEmu::cpu_step(){
             reg.pc += 3;
             last_instr_clock = 12;
         break;
+        case 0x22: //ldi (hl), a
+            write_mem(reg.hl, reg.a);
+            reg.hl++;
+            reg.pc += 1;
+            last_instr_clock = 8;
+            break;
         case 0x23: //inc hl
             reg.hl++;
             reg.pc += 1;
@@ -154,6 +180,13 @@ void GBEmu::cpu_step(){
             reg.pc += 1;
             last_instr_clock = 4;
         break;
+        case 0xa9: //xor a, c
+            reg.a ^= reg.c;
+            reg.f = 0;
+            reg.flags.z = (reg.a == 0) ? 1 : 0;
+            reg.pc += 1;
+            last_instr_clock = 4;
+            break;
         case 0xb1: //or c
             reg.a |= reg.c;
             reg.f = 0;

@@ -69,6 +69,8 @@ void GBEmu::_init()
     //debug_break_addr[2] = 0x073e; //問題の箇所ここから
     debug_break_addr[2] = 0x0753;
     debug_break_addr[3] = 0x0788;
+
+    debug_break_addr[3] = 0x075b; //タイルデータのコピー前
     debug_break = true;
 
     _sdlinit();
@@ -78,8 +80,8 @@ void GBEmu::_sdlinit()
 {
     //SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER);
     SDL_Init(SDL_INIT_EVERYTHING);
+    init_win_lcd();
     init_imgui();
-    init_win_ppu_tile();
 }
 
 void GBEmu::dump_regs()
@@ -195,6 +197,7 @@ void GBEmu::run(const char rom_file_path[])
 
     if (enable_debug) {
         init_win_debug_gui();
+        init_win_ppu_tile();
     }
 
     bool load_rom = false;
@@ -222,74 +225,6 @@ void GBEmu::run(const char rom_file_path[])
 
     }
 
-    ram[0x8000] = 0x18;
-    ram[0x8001] = 0x18;
-    ram[0x8002] = 0x3C;
-    ram[0x8003] = 0x3C;
-    ram[0x8004] = 0x66;
-    ram[0x8005] = 0x66;
-    ram[0x8006] = 0x66;
-    ram[0x8007] = 0x66;
-    ram[0x8008] = 0x7E;
-    ram[0x8009] = 0x7E;
-    ram[0x800a] = 0x66;
-    ram[0x800b] = 0x66;
-    ram[0x800c] = 0x66;
-    ram[0x800d] = 0x66;
-    ram[0x800e] = 0x00;
-    ram[0x800f] = 0x00;
-
-    ram[0x8010] = 0x7C;
-    ram[0x8011] = 0x7C;
-    ram[0x8012] = 0x66;
-    ram[0x8013] = 0x66;
-    ram[0x8014] = 0x66;
-    ram[0x8015] = 0x66;
-    ram[0x8016] = 0x7C;
-    ram[0x8017] = 0x7C;
-    ram[0x8018] = 0x66;
-    ram[0x8019] = 0x66;
-    ram[0x801a] = 0x66;
-    ram[0x801b] = 0x66;
-    ram[0x801c] = 0x7C;
-    ram[0x801d] = 0x7C;
-    ram[0x801e] = 0x00;
-    ram[0x801f] = 0x00;
-
-    ram[0x8020] = 0x3C;
-    ram[0x8021] = 0x3C;
-    ram[0x8022] = 0x66;
-    ram[0x8023] = 0x66;
-    ram[0x8024] = 0x60;
-    ram[0x8025] = 0x60;
-    ram[0x8026] = 0x60;
-    ram[0x8027] = 0x60;
-    ram[0x8028] = 0x60;
-    ram[0x8029] = 0x60;
-    ram[0x802a] = 0x66;
-    ram[0x802b] = 0x66;
-    ram[0x802c] = 0x3C;
-    ram[0x802d] = 0x3C;
-    ram[0x802e] = 0x00;
-    ram[0x802f] = 0x00;
-
-    ram[0x8100] = 0x7c;
-    ram[0x8101] = 0x7c;
-    ram[0x8102] = 0x00;
-    ram[0x8103] = 0xc6;
-    ram[0x8104] = 0xc6;
-    ram[0x8105] = 0x00;
-    ram[0x8106] = 0x00;
-    ram[0x8107] = 0xfe;
-    ram[0x8108] = 0xc6;
-    ram[0x8109] = 0xc6;
-    ram[0x810a] = 0x00;
-    ram[0x810b] = 0xc6;
-    ram[0x810c] = 0xc6;
-    ram[0x810d] = 0x00;
-    ram[0x810e] = 0x00;
-    ram[0x810f] = 0x00;
-
     /*
     std::thread cpu(&GBEmu::cpu_loop, this);
     cpu.join();
@@ -307,9 +242,13 @@ void GBEmu::run(const char rom_file_path[])
     // SDL_Delay(50);
     if (enable_debug) {
         destroy_win_debug_gui();
+
+        SDL_DestroyRenderer(rend_ppu_tile);
+        SDL_DestroyWindow(win_ppu_tile);
     }
-    SDL_DestroyRenderer(rend_ppu_tile);
-    SDL_DestroyWindow(win_ppu_tile);
+
+    SDL_DestroyRenderer(rend_lcd);
+    SDL_DestroyWindow(win_lcd);
 }
 
 int GBEmu::cpu_loop_wrapper(void* data)
@@ -345,8 +284,11 @@ void GBEmu::sdl_loop(void)
     while (!win_close) {
         // SDL steps
         sdl_event();
-        display_win_ppu_tile();
-        if (enable_debug) display_win_debug_gui();
+        display_win_lcd();
+        if (enable_debug) {
+            display_win_ppu_tile();
+            display_win_debug_gui();
+        }
     }
 }
 

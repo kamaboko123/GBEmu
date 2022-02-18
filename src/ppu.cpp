@@ -76,3 +76,29 @@ void GBEmu::ppu_step(void)
             break;
     }
 }
+
+
+
+void GBEmu::init_win_lcd(void)
+{
+    uint8_t scale = 4;
+
+    win_lcd = SDL_CreateWindow(
+        "[GBEmu] LCD",
+        SDL_WINDOWPOS_UNDEFINED,
+        SDL_WINDOWPOS_UNDEFINED,
+        160 * scale,
+        144 * scale,
+        0);
+    rend_lcd = SDL_CreateRenderer(win_lcd, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+    SDL_RenderSetScale(rend_lcd, scale, scale);
+    SDL_RenderPresent(rend_lcd);
+}
+
+void GBEmu::display_win_lcd(void)
+{
+    SDL_SetRenderDrawColor(rend_lcd, palette[0].r, palette[0].g, palette[0].b, 255);
+    SDL_RenderClear(rend_lcd);
+    SDL_RenderDrawPoint(rend_lcd, 1, 1);
+    SDL_RenderPresent(rend_lcd);
+}
