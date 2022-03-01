@@ -104,12 +104,13 @@ void GBEmu::display_win_lcd(void)
     uint8_t scr_x = ram[IO_REG::SCX];
     uint8_t scr_y = ram[IO_REG::SCY];
     uint8_t *map = ram + 0x9800;
+    /*
     map[0] = 0x40;
     map[1] = 0x40;
     map[2] = 0x40;
     map[3] = 0x40;
     map[4] = 0x40;
-
+    */
     uint8_t map_index_y = (scr_y / 8);
     for (uint8_t lcd_y = 0; lcd_y < 19; lcd_y++) {
         uint8_t map_index_x = (scr_x / 8);

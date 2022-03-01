@@ -231,6 +231,8 @@ private:
     
     bool half_carry_add(uint8_t a, uint8_t b);
     bool half_carry_sub(uint8_t a, uint8_t b);
+    bool carry_add(uint8_t a, uint8_t b);
+    bool carry_sub(uint8_t a, uint8_t b);
 
     void draw_tile(SDL_Renderer* r, uint8_t t, uint16_t x, uint16_t y, int16_t offset_x, int16_t offset_y);
 

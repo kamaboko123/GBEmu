@@ -155,6 +155,12 @@ void GBEmu::cpu_step(){
             reg.pc += 3;
             last_instr_clock = 12;
         break;
+        case 0x32: //ldd (hl), a
+            write_mem(reg.hl, reg.a);
+            reg.hl--;
+            reg.pc += 1;
+            last_instr_clock = 8;
+            break;
         case 0x3e: //ld A, u8
             reg.a = read_mem(reg.pc + 1);
             reg.pc += 2;
@@ -220,6 +226,19 @@ void GBEmu::cpu_step(){
             reg.pc += 1;
             last_instr_clock = 16;
         break;
+        case 0xc6: //add A, u8
+            u8a = reg.a;
+            u8b = read_mem(reg.pc + 1);
+            reg.a += u8b;
+            reg.pc += 2;
+
+            reg.flags.z = (reg.a == 0) ? 1 : 0;
+            reg.flags.n = 0;
+            reg.flags.h = half_carry_add(u8a, u8b) ? 1 : 0;
+            reg.flags.c = carry_add(u8a, u8b) ? 1 : 0;
+
+            last_instr_clock = 8;
+            break;
         case 0xc9: //ret
             reg.pc = pop();
             last_instr_clock = 16;
@@ -229,6 +248,19 @@ void GBEmu::cpu_step(){
             reg.pc = read_mem_u16(reg.pc + 1);
             last_instr_clock = 24;
         break;
+        case 0xd6: //sub a, u8
+            u8a = reg.a;
+            u8b = read_mem(reg.pc + 1);
+            reg.a -= u8b;
+            reg.pc += 2;
+
+            reg.flags.z = (reg.a == 0) ? 1 : 0;
+            reg.flags.n = 1;
+            reg.flags.h = half_carry_sub(u8a, u8b) ? 1 : 0;
+            reg.flags.c = carry_sub(u8a, u8b) ? 1 : 0;
+
+            last_instr_clock = 8;
+            break;
         case 0xe0: //ld (0xff00 + u8), A
             write_mem(0xff00 + read_mem(reg.pc + 1), reg.a);
             reg.pc += 2;
@@ -325,4 +357,16 @@ inline bool GBEmu::half_carry_add(uint8_t a, uint8_t b) {
 
 inline bool GBEmu::half_carry_sub(uint8_t a, uint8_t b) {
     return (((a & 0x0f) - (b & 0x0f)) & 0x10) == 0x10;
+}
+
+inline bool GBEmu::carry_add(uint8_t a, uint8_t b) {
+    //REVIEW
+    //下位8bitを取り出したものを計算し、bit8を取り出して繰り上がったかを判断する
+    return ((((uint16_t)a & 0xff) + ((uint16_t)b & 0xff)) & 0x100) == 0x100;
+}
+
+inline bool GBEmu::carry_sub(uint8_t a, uint8_t b) {
+    //REVIEW
+    //下位8bitを取り出したものを計算し、bit8を取り出して繰り上がったかを判断する
+    return ((((uint16_t)a & 0xff) - ((uint16_t)b & 0xff)) & 0x100) == 0x100;
 }
