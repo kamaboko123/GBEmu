@@ -73,6 +73,7 @@ void GBEmu::_init()
     debug_break_addr[3] = 0x075b; //タイルデータのコピー前
     debug_break = true;
 
+    enable_debug = true;
     _sdlinit();
 }
 
@@ -80,8 +81,12 @@ void GBEmu::_sdlinit()
 {
     //SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER);
     SDL_Init(SDL_INIT_EVERYTHING);
+    if (enable_debug) {
+        init_imgui();
+        init_win_debug_gui();
+        init_win_ppu_tile();
+    }
     init_win_lcd();
-    init_imgui();
 }
 
 void GBEmu::dump_regs()
@@ -193,12 +198,6 @@ void GBEmu::run(const char rom_file_path[])
 
     stop = false;
     win_close = false;
-    enable_debug = true;
-
-    if (enable_debug) {
-        init_win_debug_gui();
-        init_win_ppu_tile();
-    }
 
     bool load_rom = false;
 

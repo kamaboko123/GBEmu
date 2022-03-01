@@ -81,24 +81,82 @@ void GBEmu::ppu_step(void)
 
 void GBEmu::init_win_lcd(void)
 {
-    uint8_t scale = 4;
+    lcd_scale = 4;
 
     win_lcd = SDL_CreateWindow(
         "[GBEmu] LCD",
         SDL_WINDOWPOS_UNDEFINED,
         SDL_WINDOWPOS_UNDEFINED,
-        160 * scale,
-        144 * scale,
+        160 * lcd_scale,
+        144 * lcd_scale,
         0);
     rend_lcd = SDL_CreateRenderer(win_lcd, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
-    SDL_RenderSetScale(rend_lcd, scale, scale);
+    SDL_RenderSetScale(rend_lcd, lcd_scale, lcd_scale);
     SDL_RenderPresent(rend_lcd);
 }
 
 void GBEmu::display_win_lcd(void)
 {
-    SDL_SetRenderDrawColor(rend_lcd, palette[0].r, palette[0].g, palette[0].b, 255);
+    SDL_RenderSetScale(rend_lcd, lcd_scale, lcd_scale);
+    SDL_SetRenderDrawColor(rend_lcd, 0x00, 0x00, 0x00, 0x00);
     SDL_RenderClear(rend_lcd);
-    SDL_RenderDrawPoint(rend_lcd, 1, 1);
+
+    uint8_t scr_x = ram[IO_REG::SCX];
+    uint8_t scr_y = ram[IO_REG::SCY];
+    uint8_t *map = ram + 0x9800;
+    map[0] = 0x40;
+    map[1] = 0x40;
+    map[2] = 0x40;
+    map[3] = 0x40;
+    map[4] = 0x40;
+
+    uint8_t map_index_y = (scr_y / 8);
+    for (uint8_t lcd_y = 0; lcd_y < 19; lcd_y++) {
+        uint8_t map_index_x = (scr_x / 8);
+
+        for (uint8_t lcd_x = 0; lcd_x < 21; lcd_x++) {
+            if ((scr_x % 8 != 0 && scr_y % 8 != 0) && (lcd_x == 0 && lcd_y == 0)) {
+                draw_tile(rend_lcd, map[(map_index_y * 32) + map_index_x], 0, 0, scr_x % 8, scr_y % 8);
+            }
+            else {
+                if (lcd_x == 0) {
+                    draw_tile(rend_lcd, map[(map_index_y * 32) + map_index_x], 0, (lcd_y * 8) - (scr_y % 8), scr_x % 8, 0);
+                }
+                if (lcd_y == 0) {
+                    draw_tile(rend_lcd, map[(map_index_y * 32) + map_index_x], (lcd_x * 8) - (scr_x % 8), 0, 0, scr_y % 8);
+                }
+            }
+
+            if (lcd_x > 0 && lcd_y > 0) {
+                draw_tile(rend_lcd, map[(map_index_y * 32) + map_index_x], (lcd_x * 8) - (scr_x % 8), (lcd_y * 8) - (scr_y % 8), 0, 0);
+            }
+
+            map_index_x++;
+            if (map_index_x >= 32) {
+                map_index_x = 0;
+            }
+        }
+        map_index_y++;
+        if (map_index_y >= 32) {
+            map_index_y = 0;
+        }
+    }
+
     SDL_RenderPresent(rend_lcd);
+}
+
+void GBEmu::draw_tile(SDL_Renderer* r, uint8_t t, uint16_t x, uint16_t y, int16_t offset_x, int16_t offset_y) {
+    for (int _y = offset_y; _y < 8; _y++) {
+        uint8_t* addr = ram + VRAM_TILE_HEAD + ((uint64_t)16 * t) + (uint64_t)_y * 2;
+        uint8_t l = *addr;      //下位が格納されているバイト
+        uint8_t h = *(addr + 1);  //上位が格納されているバイト
+
+        for (int _x = offset_x; _x < 8; _x++) {
+            uint8_t col_no = (clib::getBit(h, 7 - _x) << 1) + clib::getBit(l, 7 - _x);
+
+            SDL_SetRenderDrawColor(r, palette[col_no].r, palette[col_no].g, palette[col_no].b, 0x00);
+            if (x + _x - offset_x < 0 || x + _x - offset_x > 160 || y + _y - offset_y < 0 || y + _y - offset_y > 144) continue;
+            SDL_RenderDrawPoint(r, x + _x - offset_x, y + _y - offset_y);
+        }
+    }
 }
