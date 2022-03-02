@@ -66,7 +66,7 @@ typedef union {
 typedef union {
     struct {
         uint8_t mode : 2;
-        bool match : 1;
+        bool lyc_ly_c : 1;
         bool h_blank : 1;
         bool v_blank : 1;
         bool oam_int : 1;

@@ -75,6 +75,8 @@ void GBEmu::ppu_step(void)
             }
             break;
     }
+
+    lcd_status->lyc_ly_c = (ram[IO_REG::LY] == ram[IO_REG::LYC]) ? 1 : 0;
 }
 
 
