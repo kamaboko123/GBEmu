@@ -1,5 +1,7 @@
 #include "gbemu.hpp"
 
+static_assert(-1 >> 1 == -1, "signed right shift is not arithmetic.");
+
 #if !SDL_VERSION_ATLEAST(2, 0, 17)
 #error This backend requires SDL 2.0.17+ because of SDL_RenderGeometry() function
 #endif

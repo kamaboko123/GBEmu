@@ -219,6 +219,7 @@ private:
     void sdl_loop(void);
     void sdl_event(void);
     int cpu_loop(void);
+    void instrs_pfx_0xcb(void);
 
     void init_win_debug_gui(void);
     void init_imgui(void);
