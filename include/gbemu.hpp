@@ -234,8 +234,21 @@ private:
     bool half_carry_sub(uint8_t a, uint8_t b);
     bool carry_add(uint8_t a, uint8_t b);
     bool carry_sub(uint8_t a, uint8_t b);
+    bool half_carry_add_u16(uint16_t a, uint16_t b);
+    bool carry_add_u16(uint16_t a, uint16_t b);
 
     void draw_tile(SDL_Renderer* r, uint8_t t, uint16_t x, uint16_t y, int16_t offset_x, int16_t offset_y);
+
+    void _cpu_ld_r8_imm8(uint8_t* r);
+    void _cpu_ld_r16_imm16(uint16_t* r);
+    void _cpu_inc_r16(uint16_t* r);
+    void _cpu_inc_r8(uint8_t* r);
+    void _cpu_dec_r8(uint8_t* r);
+    void _cpu_add_r16_r16(uint16_t* r1, uint16_t* r2);
+    void _cpu_ld_memr16_r8(uint16_t addr, uint8_t data);
+    void _cpu_ld_r8_memr16(uint8_t* r, uint16_t addr);
+    void _cpu_dec_r16(uint16_t* r);
+    void _cpu_ld_memimm16_r16(uint16_t r);
 
    public:
     GBEmu();
