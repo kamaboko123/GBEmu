@@ -48,17 +48,28 @@ uint8_t GBEmu::read_mem(uint16_t addr) {
         return ram[addr - 0xe000 + 0xc000];
     } else if (0xfe00 <= addr && addr <= 0xfe9f) {
         // oam
+        printf("read: [%x]\n", addr);
+        stop = true;
     } else if (0xfea0 <= addr && addr <= 0xfeff) {
         // unused
+        printf("read: [%x]\n", addr);
+        stop = true;
     } else if (0xff00 <= addr && addr <= 0xff7f) {
         // I/O register
         return ram[addr];
     } else if (0xff80 <= addr && addr <= 0xfffe) {
-        // HRAM
+        // HRAM(stack area)
+        return ram[addr];
+        //printf("read: [%x]\n", addr);
+        //stop = true;
     } else if (0xffff) {
         // interrupt enable/disable
+        printf("read: [%x]\n", addr);
+        stop = true;
     } else {
         // none
+        printf("read: [%x]\n", addr);
+        stop = true;
     }
     return 0;
 }
@@ -131,10 +142,16 @@ void GBEmu::write_mem(uint16_t addr, uint8_t data) {
     } else if (0xe000 <= addr && addr <= 0xfdff) {
         // mirror 0xc000 - 0xddff
         //書き込みはない？
+        printf("write: [%x] = %x\n", addr, data);
+        stop = true;
     } else if (0xfe00 <= addr && addr <= 0xfe9f) {
         // oam
+        printf("write: [%x] = %x\n", addr, data);
+        stop = true;
     } else if (0xfea0 <= addr && addr <= 0xfeff) {
         // unused
+        printf("write: [%x] = %x\n", addr, data);
+        stop = true;
     } else if (0xff00 <= addr && addr <= 0xff7f) {
         // I/O register
         if (addr == IO_REG::DMA) {
@@ -142,13 +159,21 @@ void GBEmu::write_mem(uint16_t addr, uint8_t data) {
         }
         else {
             ram[addr] = data;
+            printf("write(io): [%x] = %x\n", addr, data);
+            //stop = true;
         }
     } else if (0xff80 <= addr && addr <= 0xfffe) {
-        // HRAM
+        // HRAM(stack area)
+        ram[addr] = data;
+        //printf("write: [%x] = %x\n", addr, data);
+        //stop = true;
     } else if (0xffff) {
         // interrupt enable/disable
+        ram[IO_REG::IE] = data;
     } else {
         // none
+        printf("write: [%x] = %x\n", addr, data);
+        stop = true;
     }
 }
 

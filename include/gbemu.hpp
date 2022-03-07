@@ -244,6 +244,7 @@ private:
 };
 
 enum IO_REG : uint16_t {
+    IE   = 0xffff,
     IF   = 0xff0f,
     LCDC = 0xff40,
     STAT = 0xff41,

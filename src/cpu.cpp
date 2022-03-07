@@ -33,6 +33,25 @@ void GBEmu::cpu_step(){
             reg.pc += 3;
             last_instr_clock = 12;
         break;
+        case 0x02: //ld (bc), a
+            write_mem(reg.bc, a);
+            reg.pc += 1;
+            last_instr_clock = 8;
+            break;
+        case 0x03: //inc bc
+            reg.bc++;
+            reg.pc += 1;
+            last_instr_clock = 8;
+            break;
+        case 0x04: //inc b
+            u8a = reg.b;
+            reg.b++;
+            reg.flags.n = 0;
+            reg.flags.z = (reg.b == 0) ? 1 : 0;
+            reg.flags.h = half_carry_sub(u8a, 1) ? 1 : 0;
+            reg.pc += 1;
+            last_instr_clock = 4;
+            break;
         case 0x05: //dec b
             u8a = reg.b;
             reg.b--;
@@ -44,11 +63,6 @@ void GBEmu::cpu_step(){
             reg.pc += 1;
             last_instr_clock = 4;
             break;
-        case 0x03: //inc bc
-            reg.bc++;
-            reg.pc += 1;
-            last_instr_clock = 8;
-        break;
         case 0x06: //ld b, u8
             reg.b = read_mem(reg.pc + 1);
             reg.pc += 2;
@@ -410,6 +424,7 @@ void GBEmu::instrs_pfx_0xcb(void) {
         last_instr_clock = 8;
         break;
     default:
+        reg.pc--;
         stop = true;
         break;
     }
