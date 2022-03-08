@@ -96,10 +96,10 @@ struct Registers {
             union {
                 struct {
                     uint8_t unused : 4;
-                    uint8_t c : 1;  // carry
-                    uint8_t h : 1;  // half carry
-                    uint8_t n : 1;  // add/sub (negative)
-                    uint8_t z : 1;  // zero
+                    bool c : 1;  // carry
+                    bool h : 1;  // half carry
+                    bool n : 1;  // add/sub (negative)
+                    bool z : 1;  // zero
                 } flags;
                 uint8_t f;
             };

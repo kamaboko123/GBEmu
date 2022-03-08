@@ -120,7 +120,7 @@ void GBEmu::cpu_step(){
         case 0x20: //jr if not zero i8
             i8a = read_mem(reg.pc + 1);
             reg.pc += 2;
-            if(reg.flags.z != 1){
+            if(!reg.flags.z){
                 reg.pc += i8a;
                 last_instr_clock = 12;
             }
@@ -152,7 +152,7 @@ void GBEmu::cpu_step(){
         case 0x28: //jr z, i8
             i8a = read_mem(reg.pc + 1);
             reg.pc += 2;
-            if(reg.flags.z == 1){
+            if(reg.flags.z){
                 reg.pc += i8a;
                 last_instr_clock = 12;
             }
@@ -246,28 +246,28 @@ void GBEmu::cpu_step(){
         case 0xa9: //xor a, c
             reg.a ^= reg.c;
             reg.f = 0;
-            reg.flags.z = (reg.a == 0) ? 1 : 0;
+            reg.flags.z = (reg.a == 0);
             reg.pc += 1;
             last_instr_clock = 4;
             break;
         case 0xae: //xor a, (hl)
             reg.a ^= read_mem(reg.hl);
             reg.f = 0;
-            reg.flags.z = (reg.a == 0) ? 1 : 0;
+            reg.flags.z = (reg.a == 0);
             reg.pc += 1;
             last_instr_clock = 8;
             break;
         case 0xb1: //or c
             reg.a |= reg.c;
             reg.f = 0;
-            reg.flags.z = (reg.a == 0) ? 1 : 0;
+            reg.flags.z = (reg.a == 0);
             reg.pc += 1;
             last_instr_clock = 4;
         break;
         case 0xb7: //or a, a
             reg.a |= reg.a;
             reg.f = 0;
-            reg.flags.z = (reg.a == 0) ? 1 : 0;
+            reg.flags.z = (reg.a == 0);
             reg.pc += 1;
             last_instr_clock = 4;
             break;
@@ -303,10 +303,10 @@ void GBEmu::cpu_step(){
             reg.a += u8b;
             reg.pc += 2;
 
-            reg.flags.z = (reg.a == 0) ? 1 : 0;
+            reg.flags.z = (reg.a == 0);
             reg.flags.n = 0;
-            reg.flags.h = half_carry_add(u8a, u8b) ? 1 : 0;
-            reg.flags.c = carry_add(u8a, u8b) ? 1 : 0;
+            reg.flags.h = half_carry_add(u8a, u8b);
+            reg.flags.c = carry_add(u8a, u8b);
 
             last_instr_clock = 8;
             break;
@@ -333,10 +333,10 @@ void GBEmu::cpu_step(){
             reg.a -= u8b;
             reg.pc += 2;
 
-            reg.flags.z = (reg.a == 0) ? 1 : 0;
+            reg.flags.z = (reg.a == 0);
             reg.flags.n = 1;
-            reg.flags.h = half_carry_sub(u8a, u8b) ? 1 : 0;
-            reg.flags.c = carry_sub(u8a, u8b) ? 1 : 0;
+            reg.flags.h = half_carry_sub(u8a, u8b);
+            reg.flags.c = carry_sub(u8a, u8b);
 
             last_instr_clock = 8;
             break;
@@ -359,7 +359,7 @@ void GBEmu::cpu_step(){
             reg.a &= read_mem(reg.pc + 1);
             reg.f = 0;
             reg.flags.h = 1;
-            reg.flags.z = (reg.a == 0) ? 1 : 0;
+            reg.flags.z = (reg.a == 0);
             reg.pc += 2;
             last_instr_clock = 8;
         break;
@@ -400,9 +400,9 @@ void GBEmu::cpu_step(){
             u8a = read_mem(reg.pc + 1);
 
             reg.flags.n = 1;
-            reg.flags.z = (reg.a == u8a) ? 1 : 0;
-            reg.flags.c = (reg.a < u8a) ? 1 : 0;
-            reg.flags.h = half_carry_sub(reg.a, u8a) ? 1 : 0;
+            reg.flags.z = (reg.a == u8a);
+            reg.flags.c = (reg.a < u8a);
+            reg.flags.h = half_carry_sub(reg.a, u8a);
 
             reg.pc += 2;
             last_instr_clock = 8;
@@ -425,7 +425,7 @@ void GBEmu::instrs_pfx_0xcb(void) {
         reg.f = 0;
         reg.flags.c = clib::getBit(reg.b, 0);
         reg.b = reg.b >> 1;
-        reg.flags.z = (reg.b == 0) ? 1 : 0;
+        reg.flags.z = (reg.b == 0);
 
         reg.pc += 1;
         last_instr_clock = 8;
@@ -505,9 +505,9 @@ void GBEmu::_cpu_inc_r8(uint8_t* r) {
     uint8_t u8 = *r;
     (*r)++;
 
-    reg.flags.z = (*r == 0) ? 1 : 0;
+    reg.flags.z = (*r == 0);
     reg.flags.n = 0;
-    reg.flags.h = half_carry_add(u8, 1) ? 1 : 0;
+    reg.flags.h = half_carry_add(u8, 1);
 
     reg.pc += 1;
     last_instr_clock = 4;
@@ -517,9 +517,9 @@ void GBEmu::_cpu_dec_r8(uint8_t* r) {
     uint8_t u8 = *r;
     (*r)--;
 
-    reg.flags.z = (*r == 0) ? 1 : 0;
+    reg.flags.z = (*r == 0);
     reg.flags.n = 1;
-    reg.flags.h = half_carry_sub(u8, 1) ? 1 : 0;
+    reg.flags.h = half_carry_sub(u8, 1);
 
     reg.pc += 1;
     last_instr_clock = 4;
