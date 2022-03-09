@@ -10,6 +10,8 @@ void GBEmu::cpu_step(){
     int8_t i8a;
     uint8_t u8a, u8b;
 
+    bool is_branch = false;
+
     if (is_break(reg.pc)) {
         mtx_stop.lock();
         stop = true;
@@ -45,6 +47,9 @@ void GBEmu::cpu_step(){
             break;
         case 0x06: //ld b, u8
             _cpu_ld_r8_imm8(&reg.b);
+            break;
+        case 0x07: //rlca
+            _cpu_rotate_left_carry_r8(&reg.a);
             break;
         case 0x08: //ld (u16), sp
             _cpu_ld_memimm16_r16(reg.sp);
@@ -555,4 +560,15 @@ void GBEmu::_cpu_ld_memimm16_r16(uint16_t r) {
     write_mem_u16(addr, r);
     reg.pc += 3;
     last_instr_clock = 20;
+}
+
+void GBEmu::_cpu_rotate_left_carry_r8(uint8_t* r) {
+    reg.f = 0;
+
+    uint8_t old_c = reg.flags.c;
+    reg.flags.c = clib::getBit(*r, 7);
+    *r = (*r << 1) + old_c;
+
+    reg.pc += 1;
+    last_instr_clock = 4;
 }
