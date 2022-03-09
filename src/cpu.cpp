@@ -11,6 +11,8 @@ void GBEmu::cpu_step(){
     uint8_t u8a, u8b;
 
     bool is_branch = false;
+    uint8_t opcode = 0x00;
+    bool is_cb_prefix = false;
 
     if (is_break(reg.pc)) {
         mtx_stop.lock();
@@ -25,10 +27,10 @@ void GBEmu::cpu_step(){
     else {
         printf("0x%04x: 0x%02x\n", reg.pc, read_mem(reg.pc));
     }
-    switch(read_mem(reg.pc)){
+    opcode = read_mem(reg.pc);
+    switch(opcode){
         case 0x00: //nop
             reg.pc += 1;
-            last_instr_clock = 4;
             break;
         case 0x01: //ld bc, u16
             _cpu_ld_r16_imm16(&reg.bc);
@@ -102,7 +104,6 @@ void GBEmu::cpu_step(){
             */
             reg.pc += 2;
             reg.pc += i8a;
-            last_instr_clock = 12;
         break;
         case 0x19: //add hl, de
             _cpu_add_r16_r16(&reg.hl, &reg.de);
@@ -127,10 +128,7 @@ void GBEmu::cpu_step(){
             reg.pc += 2;
             if(!reg.flags.z){
                 reg.pc += i8a;
-                last_instr_clock = 12;
-            }
-            else{
-                last_instr_clock = 8;
+                is_branch = true;
             }
         break;
         case 0x21: //ld hl, u16
@@ -140,7 +138,6 @@ void GBEmu::cpu_step(){
             write_mem(reg.hl, reg.a);
             reg.hl++;
             reg.pc += 1;
-            last_instr_clock = 8;
             break;
         case 0x23: //inc hl
             _cpu_inc_r16(&reg.hl);
@@ -159,10 +156,7 @@ void GBEmu::cpu_step(){
             reg.pc += 2;
             if(reg.flags.z){
                 reg.pc += i8a;
-                last_instr_clock = 12;
-            }
-            else{
-                last_instr_clock = 8;
+                is_branch = true;
             }
         break;
         case 0x29: //add hl, hl
@@ -172,7 +166,6 @@ void GBEmu::cpu_step(){
             reg.a = read_mem(reg.hl);
             reg.hl++;
             reg.pc += 1;
-            last_instr_clock = 8;
         break;
         case 0x2b: //dec hl
             _cpu_dec_r16(&reg.hl);
@@ -193,7 +186,6 @@ void GBEmu::cpu_step(){
             write_mem(reg.hl, reg.a);
             reg.hl--;
             reg.pc += 1;
-            last_instr_clock = 8;
             break;
         case 0x33: //inc sp
             _cpu_inc_r16(&reg.sp);
@@ -216,74 +208,61 @@ void GBEmu::cpu_step(){
         case 0x46: //ld b, (hl)
             reg.b = read_mem(reg.hl);
             reg.pc += 1;
-            last_instr_clock = 8;
             break;
         case 0x4e: //ld c, (hl)
             reg.c = read_mem(reg.hl);
             reg.pc += 1;
-            last_instr_clock = 8;
             break;
         case 0x56: //ld d, (hl)
             reg.d = read_mem(reg.hl);
             reg.pc += 1;
-            last_instr_clock = 8;
             break;
         case 0x77: //ld (hl), a
             write_mem(reg.hl, reg.a);
             reg.pc += 1;
-            last_instr_clock = 8;
             break;
         case 0x78: //ld a, b
             reg.a = reg.b;
             reg.pc += 1;
-            last_instr_clock = 4;
         break;
         case 0x7c: //ld a, h
             reg.a = reg.h;
             reg.pc += 1;
-            last_instr_clock = 4;
         break;
         case 0x7d: //ld a, l
             reg.a = reg.l;
             reg.pc += 1;
-            last_instr_clock = 4;
         break;
         case 0xa9: //xor a, c
             reg.a ^= reg.c;
             reg.f = 0;
             reg.flags.z = (reg.a == 0);
             reg.pc += 1;
-            last_instr_clock = 4;
             break;
         case 0xae: //xor a, (hl)
             reg.a ^= read_mem(reg.hl);
             reg.f = 0;
             reg.flags.z = (reg.a == 0);
             reg.pc += 1;
-            last_instr_clock = 8;
             break;
         case 0xb1: //or c
             reg.a |= reg.c;
             reg.f = 0;
             reg.flags.z = (reg.a == 0);
             reg.pc += 1;
-            last_instr_clock = 4;
         break;
         case 0xb7: //or a, a
             reg.a |= reg.a;
             reg.f = 0;
             reg.flags.z = (reg.a == 0);
             reg.pc += 1;
-            last_instr_clock = 4;
             break;
         case 0xc1: //pop bc
             reg.bc = pop();
             reg.pc += 1;
-            last_instr_clock = 12;
             break;
         case 0xc3: //jmp
             reg.pc = read_mem_u16(reg.pc + 1);
-            last_instr_clock = 16;
         break;
         case 0xc4: //call nz, u16
             addr = read_mem_u16(reg.pc + 1);
@@ -291,16 +270,12 @@ void GBEmu::cpu_step(){
             if (reg.flags.z == 0) {
                 push(reg.pc);
                 reg.pc = addr;
-                last_instr_clock = 24;
-            }
-            else {
-                last_instr_clock = 16;
+                is_branch = true;
             }
             break;
         case 0xc5: //push bc
             push(reg.bc);
             reg.pc += 1;
-            last_instr_clock = 16;
         break;
         case 0xc6: //add A, u8
             u8a = reg.a;
@@ -313,24 +288,21 @@ void GBEmu::cpu_step(){
             reg.flags.h = half_carry_add(u8a, u8b);
             reg.flags.c = carry_add(u8a, u8b);
 
-            last_instr_clock = 8;
             break;
         case 0xc9: //ret
             reg.pc = pop();
-            last_instr_clock = 16;
         break;
         case 0xcb: //ret
-            instrs_pfx_0xcb();
+            is_cb_prefix = true;
+            instrs_pfx_0xcb(&opcode);
             break;
         case 0xcd: //call u16
             push(reg.pc + 3); //store next instruction address
             reg.pc = read_mem_u16(reg.pc + 1);
-            last_instr_clock = 24;
         break;
         case 0xd5: //push de
             push(reg.de);
             reg.pc += 1;
-            last_instr_clock = 16;
             break;
         case 0xd6: //sub a, u8
             u8a = reg.a;
@@ -343,22 +315,18 @@ void GBEmu::cpu_step(){
             reg.flags.h = half_carry_sub(u8a, u8b);
             reg.flags.c = carry_sub(u8a, u8b);
 
-            last_instr_clock = 8;
             break;
         case 0xe0: //ld (0xff00 + u8), A
             write_mem(0xff00 + read_mem(reg.pc + 1), reg.a);
             reg.pc += 2;
-            last_instr_clock = 12;
         break;
         case 0xe1: //pop hl
             reg.hl = pop();
             reg.pc += 1;
-            last_instr_clock = 12;
         break;
         case 0xe5: //push hl
             push(reg.hl);
             reg.pc += 1;
-            last_instr_clock = 16;
         break;
         case 0xe6: //and a, u8
             reg.a &= read_mem(reg.pc + 1);
@@ -366,40 +334,33 @@ void GBEmu::cpu_step(){
             reg.flags.h = 1;
             reg.flags.z = (reg.a == 0);
             reg.pc += 2;
-            last_instr_clock = 8;
         break;
         case 0xea: //ld (u16), a
             addr = read_mem_u16(reg.pc + 1);
             write_mem(addr, reg.a);
             reg.pc += 3;
-            last_instr_clock = 16;
         break;
         case 0xf0: //ld a, (0xff00 + u8)
             u8a = read_mem(reg.pc + 1);
             reg.a = read_mem(0xff00 + u8a);
             reg.pc += 2;
-            last_instr_clock = 12;
         break;
         case 0xf1: //pop af
             reg.af = pop();
             reg.pc += 1;
-            last_instr_clock = 12;
         break;
         case 0xf3: //di
             write_mem(0xffff, 0x00);
             reg.pc += 1;
-            last_instr_clock = 4;
         break;
         case 0xf5: //push af
             push(reg.af);
             reg.pc += 1;
-            last_instr_clock = 16;
         break;
         case 0xfa: //ld a, (u16)
             addr = read_mem_u16(reg.pc + 2);
             reg.a = read_mem(addr);
             reg.pc += 3;
-            last_instr_clock = 16;
         break;
         case 0xfe: //cp a, u8
             u8a = read_mem(reg.pc + 1);
@@ -410,12 +371,20 @@ void GBEmu::cpu_step(){
             reg.flags.h = half_carry_sub(reg.a, u8a);
 
             reg.pc += 2;
-            last_instr_clock = 8;
         break;
         default:
             stop = true;
         break;
     }
+    if (is_cb_prefix) {
+        last_instr_clock = cycle_pfx_cb[opcode];
+    }
+    else {
+        last_instr_clock = cycle_nopfx[is_branch][opcode];
+        printf("!!%d\n", cycle_nopfx[0][0]);
+    }
+    printf("cycle: %d\n", last_instr_clock);
+
     if (debug_step_exec) {
         mtx_stop.lock();
         stop = true;
@@ -423,9 +392,10 @@ void GBEmu::cpu_step(){
     }
 }
 
-void GBEmu::instrs_pfx_0xcb(void) {
+void GBEmu::instrs_pfx_0xcb(uint8_t* opcode) {
     reg.pc += 1;
-    switch (read_mem(reg.pc)) {
+    *opcode = read_mem(reg.pc);
+    switch (*opcode) {
     case 0x38://srl b
         reg.f = 0;
         reg.flags.c = clib::getBit(reg.b, 0);
@@ -433,7 +403,6 @@ void GBEmu::instrs_pfx_0xcb(void) {
         reg.flags.z = (reg.b == 0);
 
         reg.pc += 1;
-        last_instr_clock = 8;
         break;
     default:
         reg.pc--;
@@ -485,25 +454,21 @@ inline bool GBEmu::carry_add_u16(uint16_t a, uint16_t b) {
 void GBEmu::_cpu_ld_r8_imm8(uint8_t* r) {
     *r = read_mem(reg.pc + 1);
     reg.pc += 2;
-    last_instr_clock += 8;
 }
 
 void GBEmu::_cpu_ld_r16_imm16(uint16_t* r){
     *r = read_mem_u16(reg.pc + 1);
     reg.pc += 3;
-    last_instr_clock += 12;
 }
 
 void GBEmu::_cpu_inc_r16(uint16_t* r) {
     (*r)++;
     reg.pc += 1;
-    last_instr_clock = 8;
 }
 
 void GBEmu::_cpu_dec_r16(uint16_t* r) {
     (*r)--;
     reg.pc += 1;
-    last_instr_clock = 8;
 }
 
 void GBEmu::_cpu_inc_r8(uint8_t* r) {
@@ -515,7 +480,6 @@ void GBEmu::_cpu_inc_r8(uint8_t* r) {
     reg.flags.h = half_carry_add(u8, 1);
 
     reg.pc += 1;
-    last_instr_clock = 4;
 }
 
 void GBEmu::_cpu_dec_r8(uint8_t* r) {
@@ -527,7 +491,6 @@ void GBEmu::_cpu_dec_r8(uint8_t* r) {
     reg.flags.h = half_carry_sub(u8, 1);
 
     reg.pc += 1;
-    last_instr_clock = 4;
 }
 
 void GBEmu::_cpu_add_r16_r16(uint16_t* r1, uint16_t *r2) {
@@ -540,26 +503,22 @@ void GBEmu::_cpu_add_r16_r16(uint16_t* r1, uint16_t *r2) {
     reg.flags.c = carry_add_u16(u16a, u16b);
 
     reg.pc += 1;
-    last_instr_clock = 8;
 }
 
 void GBEmu::_cpu_ld_memr16_r8(uint16_t addr, uint8_t data) {
     write_mem(addr, data);
     reg.pc += 1;
-    last_instr_clock = 8;
 }
 
 void GBEmu::_cpu_ld_r8_memr16(uint8_t *r, uint16_t addr) {
     *r = read_mem(addr);
     reg.pc += 1;
-    last_instr_clock = 8;
 }
 
 void GBEmu::_cpu_ld_memimm16_r16(uint16_t r) {
     uint16_t addr = read_mem_u16(reg.pc + 1);
     write_mem_u16(addr, r);
     reg.pc += 3;
-    last_instr_clock = 20;
 }
 
 void GBEmu::_cpu_rotate_left_carry_r8(uint8_t* r) {
@@ -570,5 +529,4 @@ void GBEmu::_cpu_rotate_left_carry_r8(uint8_t* r) {
     *r = (*r << 1) + old_c;
 
     reg.pc += 1;
-    last_instr_clock = 4;
 }
