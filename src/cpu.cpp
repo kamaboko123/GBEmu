@@ -51,7 +51,7 @@ void GBEmu::cpu_step(){
             _cpu_ld_r8_imm8(&reg.b);
             break;
         case 0x07: //rlca
-            _cpu_rotate_left_carry_r8(&reg.a);
+            _cpu_rotate_left_r8(&reg.a);
             break;
         case 0x08: //ld (u16), sp
             _cpu_ld_memimm16_r16(reg.sp);
@@ -74,6 +74,9 @@ void GBEmu::cpu_step(){
         case 0x0e: //ld c, u8
             _cpu_ld_r8_imm8(&reg.c);
             break;
+        case 0x0f: //rrca
+            _cpu_rotate_right_r8(&reg.a);
+            break;
         case 0x11: //ld de, u16
             _cpu_ld_r16_imm16(&reg.de);
             break;
@@ -91,6 +94,9 @@ void GBEmu::cpu_step(){
             break;
         case 0x16: //ld b, u8
             _cpu_ld_r8_imm8(&reg.d);
+            break;
+        case 0x17: //rla
+            _cpu_rotate_left_carry_r8(&reg.a);
             break;
         case 0x18: //jr u8
             i8a = read_mem(reg.pc + 1);
@@ -122,6 +128,9 @@ void GBEmu::cpu_step(){
             break;
         case 0x1e: //ld e, u8
             _cpu_ld_r8_imm8(&reg.e);
+            break;
+        case 0x1f: //rra
+            _cpu_rotate_right_carry_r8(&reg.a);
             break;
         case 0x20: //jr if not zero i8
             i8a = read_mem(reg.pc + 1);
@@ -522,11 +531,35 @@ void GBEmu::_cpu_ld_memimm16_r16(uint16_t r) {
 }
 
 void GBEmu::_cpu_rotate_left_carry_r8(uint8_t* r) {
-    reg.f = 0;
-
     uint8_t old_c = reg.flags.c;
+    reg.f = 0;
     reg.flags.c = clib::getBit(*r, 7);
     *r = (*r << 1) + old_c;
+
+    reg.pc += 1;
+}
+
+void GBEmu::_cpu_rotate_right_carry_r8(uint8_t* r) {
+    uint8_t old_c = reg.flags.c;
+    reg.f = 0;
+    reg.flags.c = clib::getBit(*r, 0);
+    *r = (*r >> 1) + (old_c << 7);
+
+    reg.pc += 1;
+}
+
+void GBEmu::_cpu_rotate_left_r8(uint8_t* r) {
+    reg.f = 0;
+    reg.flags.c = clib::getBit(*r, 7);
+    *r = (*r << 1) + reg.flags.c;
+
+    reg.pc += 1;
+}
+
+void GBEmu::_cpu_rotate_right_r8(uint8_t* r) {
+    reg.f = 0;
+    reg.flags.c = clib::getBit(*r, 0);
+    *r = (*r >> 1) + (reg.flags.c << 7);
 
     reg.pc += 1;
 }

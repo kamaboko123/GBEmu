@@ -308,6 +308,9 @@ private:
     void _cpu_dec_r16(uint16_t* r);
     void _cpu_ld_memimm16_r16(uint16_t r);
     void _cpu_rotate_left_carry_r8(uint8_t* r);
+    void _cpu_rotate_right_carry_r8(uint8_t* r);
+    void _cpu_rotate_left_r8(uint8_t* r);
+    void _cpu_rotate_right_r8(uint8_t* r);
 
    public:
     GBEmu();
