@@ -311,6 +311,7 @@ private:
     void _cpu_rotate_right_carry_r8(uint8_t* r);
     void _cpu_rotate_left_r8(uint8_t* r);
     void _cpu_rotate_right_r8(uint8_t* r);
+    bool _cpu_jmp_if_imm8(bool flg);
 
    public:
     GBEmu();

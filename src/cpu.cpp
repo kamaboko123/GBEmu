@@ -132,14 +132,9 @@ void GBEmu::cpu_step(){
         case 0x1f: //rra
             _cpu_rotate_right_carry_r8(&reg.a);
             break;
-        case 0x20: //jr if not zero i8
-            i8a = read_mem(reg.pc + 1);
-            reg.pc += 2;
-            if(!reg.flags.z){
-                reg.pc += i8a;
-                is_branch = true;
-            }
-        break;
+        case 0x20: //jr if not zero, i8
+            is_branch = _cpu_jmp_if_imm8(!reg.flags.z);
+            break;
         case 0x21: //ld hl, u16
             _cpu_ld_r16_imm16(&reg.hl);
         break;
@@ -160,14 +155,9 @@ void GBEmu::cpu_step(){
         case 0x26: //ld h, u8
             _cpu_ld_r8_imm8(&reg.b);
             break;
-        case 0x28: //jr z, i8
-            i8a = read_mem(reg.pc + 1);
-            reg.pc += 2;
-            if(reg.flags.z){
-                reg.pc += i8a;
-                is_branch = true;
-            }
-        break;
+        case 0x28: //jr if z, i8
+            is_branch = _cpu_jmp_if_imm8(reg.flags.z);
+            break;
         case 0x29: //add hl, hl
             _cpu_add_r16_r16(&reg.hl, &reg.hl);
             break;
@@ -188,6 +178,9 @@ void GBEmu::cpu_step(){
         case 0x2e: //ld l, u8
             _cpu_ld_r8_imm8(&reg.l);
             break;
+        case 0x30: //jr if not carry, i8
+            is_branch = _cpu_jmp_if_imm8(!reg.flags.c);
+            break;
         case 0x31: //ld sp, u16
             _cpu_ld_r16_imm16(&reg.sp);
         break;
@@ -198,6 +191,9 @@ void GBEmu::cpu_step(){
             break;
         case 0x33: //inc sp
             _cpu_inc_r16(&reg.sp);
+            break;
+        case 0x38: //jr if c, i8
+            is_branch = _cpu_jmp_if_imm8(reg.flags.c);
             break;
         case 0x39: //add hl, sp
             _cpu_add_r16_r16(&reg.hl, &reg.sp);
@@ -390,9 +386,9 @@ void GBEmu::cpu_step(){
     }
     else {
         last_instr_clock = cycle_nopfx[is_branch][opcode];
-        printf("!!%d\n", cycle_nopfx[0][0]);
+        //printf("!!%d\n", cycle_nopfx[0][0]);
     }
-    printf("cycle: %d\n", last_instr_clock);
+    //printf("cycle: %d\n", last_instr_clock);
 
     if (debug_step_exec) {
         mtx_stop.lock();
@@ -562,4 +558,14 @@ void GBEmu::_cpu_rotate_right_r8(uint8_t* r) {
     *r = (*r >> 1) + (reg.flags.c << 7);
 
     reg.pc += 1;
+}
+
+bool GBEmu::_cpu_jmp_if_imm8(bool flg) {
+    int8_t i8a = (int8_t)read_mem(reg.pc + 1);
+    reg.pc += 2;
+    if (flg) {
+        reg.pc += i8a;
+        return true;
+    }
+    return false;
 }
