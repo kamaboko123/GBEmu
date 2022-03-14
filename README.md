@@ -23,6 +23,7 @@
 ### CPU Instructions
 - [gbops - The Game Boy opcode table](https://izik1.github.io/gbops/)
 - [Gameboy (LR35902) OPCODES](https://www.pastraiser.com/cpu/gameboy/gameboy_opcodes.html)
+- [WTF is the DAA instruction?](https://ehaskins.com/2018-01-30%20Z80%20DAA/)
 
 ### LCD & Graphics
 - [Gameboy LCD Controller (Natesh's Dev Blog!)](https://nnarain.github.io/2016/09/09/Gameboy-LCD-Controller.html)

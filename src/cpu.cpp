@@ -16,6 +16,7 @@ void GBEmu::cpu_step(){
     bool is_branch = false;
     uint8_t opcode = 0x00;
     bool is_cb_prefix = false;
+    bool is_jmp_ins = false;
 
     if (is_break(reg.pc)) {
         mtx_stop.lock();
@@ -33,7 +34,6 @@ void GBEmu::cpu_step(){
     opcode = read_mem(reg.pc);
     switch(opcode){
         case 0x00: //nop
-            reg.pc += 1;
             break;
         case 0x01: //ld bc, u16
             _cpu_ld_r16_imm16(&reg.bc);
@@ -102,6 +102,7 @@ void GBEmu::cpu_step(){
             _cpu_rotate_left_carry_r8(&reg.a);
             break;
         case 0x18: //jr u8
+            is_jmp_ins = true;
             i8a = read_mem(reg.pc + 1);
             /*
             単純にpcに次のu8の値を足すだけかと思ったが、次の命令のアドレスを基準に足すらしい？
@@ -113,7 +114,7 @@ void GBEmu::cpu_step(){
             */
             reg.pc += 2;
             reg.pc += i8a;
-        break;
+            break;
         case 0x19: //add hl, de
             _cpu_add_r16_r16(&reg.hl, &reg.de);
             break;
@@ -136,19 +137,19 @@ void GBEmu::cpu_step(){
             _cpu_rotate_right_carry_r8(&reg.a);
             break;
         case 0x20: //jr if not zero, i8
+            is_jmp_ins = true;
             is_branch = _cpu_jmp_if_imm8(!reg.flags.z);
             break;
         case 0x21: //ld hl, u16
             _cpu_ld_r16_imm16(&reg.hl);
-        break;
+            break;
         case 0x22: //ldi (hl), a
             write_mem(reg.hl, reg.a);
             reg.hl++;
-            reg.pc += 1;
             break;
         case 0x23: //inc hl
             _cpu_inc_r16(&reg.hl);
-        break;
+            break;
         case 0x24: //inc h
             _cpu_inc_r8(&reg.h);
             break;
@@ -159,6 +160,7 @@ void GBEmu::cpu_step(){
             _cpu_ld_r8_imm8(&reg.b);
             break;
         case 0x28: //jr if z, i8
+            is_jmp_ins = true;
             is_branch = _cpu_jmp_if_imm8(reg.flags.z);
             break;
         case 0x29: //add hl, hl
@@ -167,7 +169,6 @@ void GBEmu::cpu_step(){
         case 0x2a: //ldi, a (hl)
             reg.a = read_mem(reg.hl);
             reg.hl++;
-            reg.pc += 1;
             break;
         case 0x2b: //dec hl
             _cpu_dec_r16(&reg.hl);
@@ -185,6 +186,7 @@ void GBEmu::cpu_step(){
             _cpu_complement_r8(&reg.a);
             break;
         case 0x30: //jr if not carry, i8
+            is_jmp_ins = true;
             is_branch = _cpu_jmp_if_imm8(!reg.flags.c);
             break;
         case 0x31: //ld sp, u16
@@ -193,7 +195,6 @@ void GBEmu::cpu_step(){
         case 0x32: //ldd (hl), a
             write_mem(reg.hl, reg.a);
             reg.hl--;
-            reg.pc += 1;
             break;
         case 0x33: //inc sp
             _cpu_inc_r16(&reg.sp);
@@ -208,6 +209,7 @@ void GBEmu::cpu_step(){
             _cpu_ld_mem_imm8(reg.hl);
             break;
         case 0x38: //jr if c, i8
+            is_jmp_ins = true;
             is_branch = _cpu_jmp_if_imm8(reg.flags.c);
             break;
         case 0x39: //add hl, sp
@@ -227,64 +229,54 @@ void GBEmu::cpu_step(){
             break;
         case 0x46: //ld b, (hl)
             reg.b = read_mem(reg.hl);
-            reg.pc += 1;
             break;
         case 0x4e: //ld c, (hl)
             reg.c = read_mem(reg.hl);
-            reg.pc += 1;
             break;
         case 0x56: //ld d, (hl)
             reg.d = read_mem(reg.hl);
-            reg.pc += 1;
             break;
         case 0x77: //ld (hl), a
             write_mem(reg.hl, reg.a);
-            reg.pc += 1;
             break;
         case 0x78: //ld a, b
             reg.a = reg.b;
-            reg.pc += 1;
-        break;
+            break;
         case 0x7c: //ld a, h
             reg.a = reg.h;
-            reg.pc += 1;
-        break;
+            break;
         case 0x7d: //ld a, l
             reg.a = reg.l;
-            reg.pc += 1;
-        break;
+            break;
         case 0xa9: //xor a, c
             reg.a ^= reg.c;
             reg.f = 0;
             reg.flags.z = (reg.a == 0);
-            reg.pc += 1;
             break;
         case 0xae: //xor a, (hl)
             reg.a ^= read_mem(reg.hl);
             reg.f = 0;
             reg.flags.z = (reg.a == 0);
-            reg.pc += 1;
             break;
         case 0xb1: //or c
             reg.a |= reg.c;
             reg.f = 0;
             reg.flags.z = (reg.a == 0);
-            reg.pc += 1;
-        break;
+            break;
         case 0xb7: //or a, a
             reg.a |= reg.a;
             reg.f = 0;
             reg.flags.z = (reg.a == 0);
-            reg.pc += 1;
             break;
         case 0xc1: //pop bc
             reg.bc = pop();
-            reg.pc += 1;
             break;
         case 0xc3: //jmp
+            is_jmp_ins = true;
             reg.pc = read_mem_u16(reg.pc + 1);
-        break;
+            break;
         case 0xc4: //call nz, u16
+            is_jmp_ins = true;
             addr = read_mem_u16(reg.pc + 1);
             reg.pc += 3;
             if (reg.flags.z == 0) {
@@ -295,13 +287,11 @@ void GBEmu::cpu_step(){
             break;
         case 0xc5: //push bc
             push(reg.bc);
-            reg.pc += 1;
-        break;
+            break;
         case 0xc6: //add A, u8
             u8a = reg.a;
             u8b = read_mem(reg.pc + 1);
             reg.a += u8b;
-            reg.pc += 2;
 
             reg.flags.z = (reg.a == 0);
             reg.flags.n = 0;
@@ -310,25 +300,25 @@ void GBEmu::cpu_step(){
 
             break;
         case 0xc9: //ret
+            is_jmp_ins = true;
             reg.pc = pop();
-        break;
-        case 0xcb: //ret
+            break;
+        case 0xcb: //extend instructions
             is_cb_prefix = true;
             instrs_pfx_0xcb(&opcode);
             break;
         case 0xcd: //call u16
+            is_jmp_ins = true;
             push(reg.pc + 3); //store next instruction address
             reg.pc = read_mem_u16(reg.pc + 1);
-        break;
+            break;
         case 0xd5: //push de
             push(reg.de);
-            reg.pc += 1;
             break;
         case 0xd6: //sub a, u8
             u8a = reg.a;
             u8b = read_mem(reg.pc + 1);
             reg.a -= u8b;
-            reg.pc += 2;
 
             reg.flags.z = (reg.a == 0);
             reg.flags.n = 1;
@@ -338,50 +328,40 @@ void GBEmu::cpu_step(){
             break;
         case 0xe0: //ld (0xff00 + u8), A
             write_mem(0xff00 + read_mem(reg.pc + 1), reg.a);
-            reg.pc += 2;
-        break;
+            break;
         case 0xe1: //pop hl
             reg.hl = pop();
-            reg.pc += 1;
-        break;
+            break;
         case 0xe5: //push hl
             push(reg.hl);
-            reg.pc += 1;
-        break;
+            break;
         case 0xe6: //and a, u8
             reg.a &= read_mem(reg.pc + 1);
             reg.f = 0;
             reg.flags.h = 1;
             reg.flags.z = (reg.a == 0);
-            reg.pc += 2;
-        break;
+            break;
         case 0xea: //ld (u16), a
             addr = read_mem_u16(reg.pc + 1);
             write_mem(addr, reg.a);
-            reg.pc += 3;
-        break;
+            break;
         case 0xf0: //ld a, (0xff00 + u8)
             u8a = read_mem(reg.pc + 1);
             reg.a = read_mem(0xff00 + u8a);
-            reg.pc += 2;
-        break;
+            break;
         case 0xf1: //pop af
             reg.af = pop();
-            reg.pc += 1;
-        break;
+            break;
         case 0xf3: //di
             write_mem(0xffff, 0x00);
-            reg.pc += 1;
-        break;
+            break;
         case 0xf5: //push af
             push(reg.af);
-            reg.pc += 1;
-        break;
+            break;
         case 0xfa: //ld a, (u16)
             addr = read_mem_u16(reg.pc + 2);
             reg.a = read_mem(addr);
-            reg.pc += 3;
-        break;
+            break;
         case 0xfe: //cp a, u8
             u8a = read_mem(reg.pc + 1);
 
@@ -389,20 +369,22 @@ void GBEmu::cpu_step(){
             reg.flags.z = (reg.a == u8a);
             reg.flags.c = (reg.a < u8a);
             reg.flags.h = half_carry_sub(reg.a, u8a);
-
-            reg.pc += 2;
-        break;
+            break;
         default:
             stop = true;
-        break;
+            break;
     }
     if (is_cb_prefix) {
         last_instr_clock = cycle_pfx_cb[opcode];
-        //reg.pc += length_pfx_cb[opcode];
+        if (!is_jmp_ins) {
+            reg.pc += length_pfx_cb[opcode];
+        }
     }
     else {
         last_instr_clock = cycle_nopfx[is_branch][opcode];
-        //reg.pc += length_nopfx[opcode];
+        if (!is_jmp_ins) {
+            reg.pc += length_nopfx[opcode];
+        }
     }
 
     if (debug_step_exec) {
@@ -413,19 +395,15 @@ void GBEmu::cpu_step(){
 }
 
 void GBEmu::instrs_pfx_0xcb(uint8_t* opcode) {
-    reg.pc += 1;
-    *opcode = read_mem(reg.pc);
+    *opcode = read_mem(reg.pc + 1);
     switch (*opcode) {
     case 0x38://srl b
         reg.f = 0;
         reg.flags.c = clib::getBit(reg.b, 0);
         reg.b = reg.b >> 1;
         reg.flags.z = (reg.b == 0);
-
-        reg.pc += 1;
         break;
     default:
-        reg.pc--;
         stop = true;
         break;
     }
@@ -473,22 +451,18 @@ inline bool GBEmu::carry_add_u16(uint16_t a, uint16_t b) {
 
 void GBEmu::_cpu_ld_r8_imm8(uint8_t* r) {
     *r = read_mem(reg.pc + 1);
-    reg.pc += 2;
 }
 
 void GBEmu::_cpu_ld_r16_imm16(uint16_t* r){
     *r = read_mem_u16(reg.pc + 1);
-    reg.pc += 3;
 }
 
 void GBEmu::_cpu_inc_r16(uint16_t* r) {
     (*r)++;
-    reg.pc += 1;
 }
 
 void GBEmu::_cpu_dec_r16(uint16_t* r) {
     (*r)--;
-    reg.pc += 1;
 }
 
 void GBEmu::_cpu_inc_r8(uint8_t* r) {
@@ -498,8 +472,6 @@ void GBEmu::_cpu_inc_r8(uint8_t* r) {
     reg.flags.z = (*r == 0);
     reg.flags.n = false;
     reg.flags.h = half_carry_add(u8, 1);
-
-    reg.pc += 1;
 }
 
 void GBEmu::_cpu_dec_r8(uint8_t* r) {
@@ -509,8 +481,6 @@ void GBEmu::_cpu_dec_r8(uint8_t* r) {
     reg.flags.z = (*r == 0);
     reg.flags.n = true;
     reg.flags.h = half_carry_sub(u8, 1);
-
-    reg.pc += 1;
 }
 
 void GBEmu::_cpu_add_r16_r16(uint16_t* r1, uint16_t *r2) {
@@ -521,26 +491,21 @@ void GBEmu::_cpu_add_r16_r16(uint16_t* r1, uint16_t *r2) {
     reg.flags.n = false;
     reg.flags.h = half_carry_add_u16(u16a, u16b);
     reg.flags.c = carry_add_u16(u16a, u16b);
-
-    reg.pc += 1;
 }
 
 void GBEmu::_cpu_ld_mem_r8(uint16_t addr, uint8_t data) {
     // ld (reg16), reg8
     write_mem(addr, data);
-    reg.pc += 1;
 }
 
 void GBEmu::_cpu_ld_r8_mem(uint8_t *r, uint16_t addr) {
     // ld reg8, (reg16)
     *r = read_mem(addr);
-    reg.pc += 1;
 }
 
 void GBEmu::_cpu_ld_memimm16_r16(uint16_t r) {
     uint16_t addr = read_mem_u16(reg.pc + 1);
     write_mem_u16(addr, r);
-    reg.pc += 3;
 }
 
 void GBEmu::_cpu_rotate_left_carry_r8(uint8_t* r) {
@@ -548,8 +513,6 @@ void GBEmu::_cpu_rotate_left_carry_r8(uint8_t* r) {
     reg.f = 0;
     reg.flags.c = clib::getBit(*r, 7);
     *r = (*r << 1) + old_c;
-
-    reg.pc += 1;
 }
 
 void GBEmu::_cpu_rotate_right_carry_r8(uint8_t* r) {
@@ -557,24 +520,18 @@ void GBEmu::_cpu_rotate_right_carry_r8(uint8_t* r) {
     reg.f = 0;
     reg.flags.c = clib::getBit(*r, 0);
     *r = (*r >> 1) + (old_c << 7);
-
-    reg.pc += 1;
 }
 
 void GBEmu::_cpu_rotate_left_r8(uint8_t* r) {
     reg.f = 0;
     reg.flags.c = clib::getBit(*r, 7);
     *r = (*r << 1) + reg.flags.c;
-
-    reg.pc += 1;
 }
 
 void GBEmu::_cpu_rotate_right_r8(uint8_t* r) {
     reg.f = 0;
     reg.flags.c = clib::getBit(*r, 0);
     *r = (*r >> 1) + (reg.flags.c << 7);
-
-    reg.pc += 1;
 }
 
 bool GBEmu::_cpu_jmp_if_imm8(bool flg) {
@@ -591,8 +548,6 @@ void GBEmu::_cpu_complement_r8(uint8_t *r) {
     *r = ~*r;
     reg.flags.n = true;
     reg.flags.h = true;
-
-    reg.pc += 1;
 }
 
 void GBEmu::_cpu_inc_mem(uint16_t addr) {
@@ -602,8 +557,6 @@ void GBEmu::_cpu_inc_mem(uint16_t addr) {
     reg.flags.z = ((u8a + 1) == 0);
     reg.flags.n = false;
     reg.flags.h = half_carry_add(u8a, 1);
-
-    reg.pc += 1;
 }
 
 void GBEmu::_cpu_dec_mem(uint16_t addr) {
@@ -613,11 +566,8 @@ void GBEmu::_cpu_dec_mem(uint16_t addr) {
     reg.flags.z = ((u8a - 1) == 0);
     reg.flags.n = false;
     reg.flags.h = half_carry_sub(u8a, 1);
-
-    reg.pc += 1;
 }
 
 void GBEmu::_cpu_ld_mem_imm8(uint16_t addr) {
     write_mem(addr, read_mem(reg.pc + 1));
-    reg.pc += 2;
 }
