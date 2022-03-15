@@ -341,8 +341,6 @@ private:
     void _cpu_inc_r8(uint8_t* r);
     void _cpu_dec_r8(uint8_t* r);
     void _cpu_add_r16_r16(uint16_t* r1, uint16_t* r2);
-    void _cpu_ld_mem_r8(uint16_t addr, uint8_t data);
-    void _cpu_ld_r8_mem(uint8_t* r, uint16_t addr);
     void _cpu_dec_r16(uint16_t* r);
     void _cpu_ld_memimm16_r16(uint16_t r);
     void _cpu_rotate_left_carry_r8(uint8_t* r);
@@ -354,6 +352,8 @@ private:
     void _cpu_inc_mem(uint16_t addr);
     void _cpu_dec_mem(uint16_t addr);
     void _cpu_ld_mem_imm8(uint16_t addr);
+    void _cpu_jmp_relative_imm8(void);
+    void _cpu_add_rega_r8(uint8_t* r);
 
    public:
     GBEmu();

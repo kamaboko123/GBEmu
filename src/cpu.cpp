@@ -5,7 +5,9 @@
     http://marc.rawer.de/Gameboy/Docs/GBCPUman.pdf
 
     TODO:
-    0x10, 0x27, 0x37
+    0x10 stop
+    0x27 daa
+    0x76 halt
 */
 
 void GBEmu::cpu_step(){
@@ -39,7 +41,7 @@ void GBEmu::cpu_step(){
             _cpu_ld_r16_imm16(&reg.bc);
             break;
         case 0x02: //ld (bc), a
-            _cpu_ld_mem_r8(reg.bc, reg.a);
+            write_mem(reg.bc, reg.a);
             break;
         case 0x03: //inc bc
             _cpu_inc_r16(&reg.bc);
@@ -63,7 +65,7 @@ void GBEmu::cpu_step(){
             _cpu_add_r16_r16(&reg.hl, &reg.bc);
             break;
         case 0x0a: //ld a, (bc)
-            _cpu_ld_r8_mem(&reg.a, reg.bc);
+            reg.a = read_mem(reg.bc);
             break;
         case 0x0b: //dec bc
             _cpu_dec_r16(&reg.bc);
@@ -84,7 +86,7 @@ void GBEmu::cpu_step(){
             _cpu_ld_r16_imm16(&reg.de);
             break;
         case 0x12: //ld (de), a
-            _cpu_ld_mem_r8(reg.de, reg.a);
+            write_mem(reg.de, reg.a);
             break;
         case 0x13: //inc de
             _cpu_inc_r16(&reg.de);
@@ -103,23 +105,13 @@ void GBEmu::cpu_step(){
             break;
         case 0x18: //jr u8
             is_jmp_ins = true;
-            i8a = read_mem(reg.pc + 1);
-            /*
-            単純にpcに次のu8の値を足すだけかと思ったが、次の命令のアドレスを基準に足すらしい？
-            例えば以下の場合、次のu8が格納されているアドレスを基準に加算するのではなく、
-            次の命令(0x03のnop)に加算し、0x07になる。
-            0x01: 0x18 ; jr 0x04 -> (0x03 + 4)=0x07
-            0x02: 0x04 
-            0x03: 0x00 ; nop
-            */
-            reg.pc += 2;
-            reg.pc += i8a;
+            _cpu_jmp_relative_imm8();
             break;
         case 0x19: //add hl, de
             _cpu_add_r16_r16(&reg.hl, &reg.de);
             break;
         case 0x1a: //ld a, (de)
-            _cpu_ld_r8_mem(&reg.a, reg.de);
+            reg.a = read_mem(reg.de);
             break;
         case 0x1b: //dec de
             _cpu_dec_r16(&reg.de);
@@ -144,8 +136,7 @@ void GBEmu::cpu_step(){
             _cpu_ld_r16_imm16(&reg.hl);
             break;
         case 0x22: //ldi (hl), a
-            write_mem(reg.hl, reg.a);
-            reg.hl++;
+            write_mem(reg.hl++, reg.a);
             break;
         case 0x23: //inc hl
             _cpu_inc_r16(&reg.hl);
@@ -167,8 +158,7 @@ void GBEmu::cpu_step(){
             _cpu_add_r16_r16(&reg.hl, &reg.hl);
             break;
         case 0x2a: //ldi, a (hl)
-            reg.a = read_mem(reg.hl);
-            reg.hl++;
+            reg.a = read_mem(reg.hl++);
             break;
         case 0x2b: //dec hl
             _cpu_dec_r16(&reg.hl);
@@ -193,8 +183,7 @@ void GBEmu::cpu_step(){
             _cpu_ld_r16_imm16(&reg.sp);
             break;
         case 0x32: //ldd (hl), a
-            write_mem(reg.hl, reg.a);
-            reg.hl--;
+            write_mem(reg.hl--, reg.a);
             break;
         case 0x33: //inc sp
             _cpu_inc_r16(&reg.sp);
@@ -208,12 +197,20 @@ void GBEmu::cpu_step(){
         case 0x36: // ld (hl), u8
             _cpu_ld_mem_imm8(reg.hl);
             break;
+        case 0x37: // scf
+            reg.flags.n = false;
+            reg.flags.h = false;
+            reg.flags.c = true;
+            break;
         case 0x38: //jr if c, i8
             is_jmp_ins = true;
             is_branch = _cpu_jmp_if_imm8(reg.flags.c);
             break;
         case 0x39: //add hl, sp
             _cpu_add_r16_r16(&reg.hl, &reg.sp);
+            break;
+        case 0x3a: //ldd a, (hl)
+            reg.a = read_mem(reg.hl--);
             break;
         case 0x3b: //dec sp
             _cpu_dec_r16(&reg.sp);
@@ -227,14 +224,172 @@ void GBEmu::cpu_step(){
         case 0x3e: //ld a, u8
             _cpu_ld_r8_imm8(&reg.a);
             break;
+        case 0x3f: //ccf
+            reg.flags.n = false;
+            reg.flags.h = false;
+            reg.flags.c = !reg.flags.c;
+            break;
+        case 0x40: //ld b, b
+            reg.b = reg.b;
+            break;
+        case 0x41: //ld b, c
+            reg.b = reg.c;
+            break;
+        case 0x42: //ld b, d
+            reg.b = reg.d;
+            break;
+        case 0x43: //ld b, e
+            reg.b = reg.e;
+            break;
+        case 0x44: //ld b, h
+            reg.b = reg.h;
+            break;
+        case 0x45: //ld b, l
+            reg.b = reg.l;
+            break;
         case 0x46: //ld b, (hl)
             reg.b = read_mem(reg.hl);
+            break;
+        case 0x47: //ld b, a
+            reg.b = reg.a;
+            break;
+        case 0x48: //ld c, b
+            reg.c = reg.b;
+            break;
+        case 0x49: //ld c, c
+            reg.c = reg.c;
+            break;
+        case 0x4a: //ld c, d
+            reg.c = reg.d;
+            break;
+        case 0x4b: //ld c, e
+            reg.c = reg.e;
+            break;
+        case 0x4c: //ld c, h
+            reg.c = reg.h;
+            break;
+        case 0x4d: //ld c, l
+            reg.c = reg.l;
             break;
         case 0x4e: //ld c, (hl)
             reg.c = read_mem(reg.hl);
             break;
+        case 0x4f: //ld c, a
+            reg.c = reg.a;
+            break;
+        case 0x50: //ld d, b
+            reg.d = reg.b;
+            break;
+        case 0x51: //ld d, c
+            reg.d = reg.c;
+            break;
+        case 0x52: //ld d, d
+            reg.d = reg.d;
+            break;
+        case 0x53: //ld d, e
+            reg.d = reg.e;
+            break;
+        case 0x54: //ld d, h
+            reg.d = reg.h;
+            break;
+        case 0x55: //ld d, l
+            reg.d = reg.l;
+            break;
         case 0x56: //ld d, (hl)
             reg.d = read_mem(reg.hl);
+            break;
+        case 0x57: //ld d, a
+            reg.d = reg.a;
+            break;
+        case 0x58: //ld e, b
+            reg.e = reg.b;
+            break;
+        case 0x59: //ld e, c
+            reg.e = reg.c;
+            break;
+        case 0x5a: //ld e, d
+            reg.e = reg.d;
+            break;
+        case 0x5b: //ld e, e
+            reg.e = reg.e;
+            break;
+        case 0x5c: //ld e, h
+            reg.e = reg.h;
+            break;
+        case 0x5d: //ld e, l
+            reg.e = reg.l;
+            break;
+        case 0x5e: //ld e, (hl)
+            reg.e = read_mem(reg.hl);
+            break;
+        case 0x5f: //ld e, a
+            reg.e = reg.a;
+            break;
+        case 0x60: //ld h, b
+            reg.h = reg.b;
+            break;
+        case 0x61: //ld h, c
+            reg.h = reg.c;
+            break;
+        case 0x62: //ld h, d
+            reg.h = reg.d;
+            break;
+        case 0x63: //ld h, e
+            reg.h = reg.e;
+            break;
+        case 0x64: //ld h, h
+            reg.h = reg.h;
+            break;
+        case 0x65: //ld h, l
+            reg.h = reg.l;
+            break;
+        case 0x66: //ld h, (hl)
+            reg.h = read_mem(reg.hl);
+            break;
+        case 0x67: //ld h, a
+            reg.h = reg.a;
+            break;
+        case 0x68: //ld l, b
+            reg.l = reg.b;
+            break;
+        case 0x69: //ld l, c
+            reg.l = reg.c;
+            break;
+        case 0x6a: //ld l, d
+            reg.l = reg.d;
+            break;
+        case 0x6b: //ld l, e
+            reg.l = reg.e;
+            break;
+        case 0x6c: //ld l, h
+            reg.l = reg.h;
+            break;
+        case 0x6d: //ld l, l
+            reg.l = reg.l;
+            break;
+        case 0x6e: //ld l, (hl)
+            reg.l = read_mem(reg.hl);
+            break;
+        case 0x6f: //ld l, a
+            reg.l = reg.a;
+            break;
+        case 0x70: //ld (hl), b
+            write_mem(reg.hl, reg.b);
+            break;
+        case 0x71: //ld (hl), c
+            write_mem(reg.hl, reg.c);
+            break;
+        case 0x72: //ld (hl), d
+            write_mem(reg.hl, reg.d);
+            break;
+        case 0x73: //ld (hl), e
+            write_mem(reg.hl, reg.e);
+            break;
+        case 0x74: //ld (hl), h
+            write_mem(reg.hl, reg.h);
+            break;
+        case 0x75: //ld (hl), l
+            write_mem(reg.hl, reg.l);
             break;
         case 0x77: //ld (hl), a
             write_mem(reg.hl, reg.a);
@@ -242,11 +397,29 @@ void GBEmu::cpu_step(){
         case 0x78: //ld a, b
             reg.a = reg.b;
             break;
+        case 0x79: //ld a, c
+            reg.a = reg.c;
+            break;
+        case 0x7a: //ld a, d
+            reg.a = reg.d;
+            break;
+        case 0x7b: //ld a, e
+            reg.a = reg.e;
+            break;
         case 0x7c: //ld a, h
             reg.a = reg.h;
             break;
         case 0x7d: //ld a, l
             reg.a = reg.l;
+            break;
+        case 0x7e: //ld a, (hl)
+            reg.a = read_mem(reg.hl);
+            break;
+        case 0x7f: //ld a, a
+            reg.a = reg.a;
+            break;
+        case 0x80: //add a,b
+            _cpu_add_rega_r8(&reg.b);
             break;
         case 0xa9: //xor a, c
             reg.a ^= reg.c;
@@ -374,6 +547,8 @@ void GBEmu::cpu_step(){
             stop = true;
             break;
     }
+
+    //update clock and program counter
     if (is_cb_prefix) {
         last_instr_clock = cycle_pfx_cb[opcode];
         if (!is_jmp_ins) {
@@ -493,16 +668,6 @@ void GBEmu::_cpu_add_r16_r16(uint16_t* r1, uint16_t *r2) {
     reg.flags.c = carry_add_u16(u16a, u16b);
 }
 
-void GBEmu::_cpu_ld_mem_r8(uint16_t addr, uint8_t data) {
-    // ld (reg16), reg8
-    write_mem(addr, data);
-}
-
-void GBEmu::_cpu_ld_r8_mem(uint8_t *r, uint16_t addr) {
-    // ld reg8, (reg16)
-    *r = read_mem(addr);
-}
-
 void GBEmu::_cpu_ld_memimm16_r16(uint16_t r) {
     uint16_t addr = read_mem_u16(reg.pc + 1);
     write_mem_u16(addr, r);
@@ -570,4 +735,27 @@ void GBEmu::_cpu_dec_mem(uint16_t addr) {
 
 void GBEmu::_cpu_ld_mem_imm8(uint16_t addr) {
     write_mem(addr, read_mem(reg.pc + 1));
+}
+
+void GBEmu::_cpu_jmp_relative_imm8(void) {
+    int i8a = read_mem(reg.pc + 1);
+    /*
+    単純にpcに次のu8の値を足すだけかと思ったが、次の命令のアドレスを基準に足すらしい？
+    例えば以下の場合、次のu8が格納されているアドレスを基準に加算するのではなく、
+    次の命令(0x03のnop)に加算し、0x07になる。
+    0x01: 0x18 ; jr 0x04 -> (0x03 + 4)=0x07
+    0x02: 0x04
+    0x03: 0x00 ; nop
+    */
+    reg.pc += 2;
+    reg.pc += i8a;
+}
+
+void GBEmu::_cpu_add_rega_r8(uint8_t* r) {
+    uint8_t u8a = *r;
+    reg.a += *r;
+    reg.flags.z = (reg.a == 0);
+    reg.flags.n = false;
+    reg.flags.h = half_carry_add(u8a, *r);
+    reg.flags.c = carry_add(u8a, *r);
 }
