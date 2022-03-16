@@ -372,6 +372,8 @@ private:
     bool _cpu_ret_if(bool flg);
     bool _cpu_jmp_if_imm16(bool flg);
     bool _cpu_call_if_imm16(bool flg);
+    void _cpu_restart(uint16_t addr);
+    void _cpu_add_r16_imm8s(uint16_t* r);
 
    public:
     GBEmu();
