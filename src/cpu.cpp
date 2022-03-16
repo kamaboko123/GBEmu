@@ -418,28 +418,197 @@ void GBEmu::cpu_step(){
         case 0x7f: //ld a, a
             reg.a = reg.a;
             break;
-        case 0x80: //add a,b
+        case 0x80: //add a, b
             _cpu_add_rega_r8(&reg.b);
             break;
+        case 0x81: //add a, c
+            _cpu_add_rega_r8(&reg.c);
+            break;
+        case 0x82: //add a, d
+            _cpu_add_rega_r8(&reg.d);
+            break;
+        case 0x83: //add a, e
+            _cpu_add_rega_r8(&reg.e);
+            break;
+        case 0x84: //add a, h
+            _cpu_add_rega_r8(&reg.h);
+            break;
+        case 0x85: //add a, l
+            _cpu_add_rega_r8(&reg.l);
+            break;
+        case 0x86: //add a, (hl)
+            _cpu_add_rega_mem(reg.hl);
+            break;
+        case 0x87: //add a, a
+            _cpu_add_rega_r8(&reg.a);
+            break;
+        case 0x88: //adc a, b
+            _cpu_add_rega_r8_carry(&reg.b);
+            break;
+        case 0x89: //adc a, c
+            _cpu_add_rega_r8_carry(&reg.c);
+            break;
+        case 0x8a: //adc a, d
+            _cpu_add_rega_r8_carry(&reg.d);
+            break;
+        case 0x8b: //adc a, e
+            _cpu_add_rega_r8_carry(&reg.e);
+            break;
+        case 0x8c: //adc a, h
+            _cpu_add_rega_r8_carry(&reg.h);
+            break;
+        case 0x8d: //adc a, l
+            _cpu_add_rega_r8_carry(&reg.l);
+            break;
+        case 0x8e: //adc a, (hl)
+            _cpu_add_rega_mem_carry(reg.hl);
+            break;
+        case 0x8f: //adc a, a
+            _cpu_add_rega_r8_carry(&reg.a);
+            break;
+        case 0x90: //sub a, b
+            _cpu_sub_rega_r8(&reg.b);
+            break;
+        case 0x91: //sub a, c
+            _cpu_sub_rega_r8(&reg.c);
+            break;
+        case 0x92: //sub a, d
+            _cpu_sub_rega_r8(&reg.d);
+            break;
+        case 0x93: //sub a, e
+            _cpu_sub_rega_r8(&reg.e);
+            break;
+        case 0x94: //sub a, h
+            _cpu_sub_rega_r8(&reg.h);
+            break;
+        case 0x95: //sub a, l
+            _cpu_sub_rega_r8(&reg.l);
+            break;
+        case 0x96: //sub a, (hl)
+            _cpu_sub_rega_mem(reg.hl);
+            break;
+        case 0x97: //sub a, a
+            _cpu_sub_rega_r8(&reg.a);
+            break;
+        case 0x98: //sbc a, b
+            _cpu_sub_rega_r8_carry(&reg.b);
+            break;
+        case 0x99: //sbc a, c
+            _cpu_sub_rega_r8_carry(&reg.c);
+            break;
+        case 0x9a: //sbc a, d
+            _cpu_sub_rega_r8_carry(&reg.d);
+            break;
+        case 0x9b: //sbc a, e
+            _cpu_sub_rega_r8_carry(&reg.e);
+            break;
+        case 0x9c: //sbc a, h
+            _cpu_sub_rega_r8_carry(&reg.h);
+            break;
+        case 0x9d: //scbc a, l
+            _cpu_sub_rega_r8_carry(&reg.l);
+            break;
+        case 0x9e: //sbc a, (hl)
+            _cpu_sub_rega_mem_carry(reg.hl);
+            break;
+        case 0x9f: //sbc a, a
+            _cpu_sub_rega_r8_carry(&reg.a);
+            break;
+        case 0xa0: //and a, b
+            _cpu_and_rega_r8(&reg.b);
+            break;
+        case 0xa1: //and a, c
+            _cpu_and_rega_r8(&reg.c);
+            break;
+        case 0xa2: //and a, d
+            _cpu_and_rega_r8(&reg.d);
+            break;
+        case 0xa3: //and a, e
+            _cpu_and_rega_r8(&reg.e);
+            break;
+        case 0xa4: //and a, h
+            _cpu_and_rega_r8(&reg.h);
+            break;
+        case 0xa5: //and a, l
+            _cpu_and_rega_r8(&reg.l);
+            break;
+        case 0xa6: //and a, (hl)
+            _cpu_and_rega_mem(reg.hl);
+            break;
+        case 0xa7: //and a, a
+            _cpu_and_rega_r8(&reg.a);
+            break;
+        case 0xa8: //xor a, b
+            _cpu_xor_rega_r8(&reg.b);
+            break;
         case 0xa9: //xor a, c
-            reg.a ^= reg.c;
-            reg.f = 0;
-            reg.flags.z = (reg.a == 0);
+            _cpu_xor_rega_r8(&reg.c);
+            break;
+        case 0xaa: //xor a, d
+            _cpu_xor_rega_r8(&reg.d);
+            break;
+        case 0xab: //xor a, e
+            _cpu_xor_rega_r8(&reg.e);
+            break;
+        case 0xac: //xor a, h
+            _cpu_xor_rega_r8(&reg.h);
+            break;
+        case 0xad: //xor a, l
+            _cpu_xor_rega_r8(&reg.l);
             break;
         case 0xae: //xor a, (hl)
-            reg.a ^= read_mem(reg.hl);
-            reg.f = 0;
-            reg.flags.z = (reg.a == 0);
+            _cpu_xor_rega_mem(reg.hl);
             break;
-        case 0xb1: //or c
-            reg.a |= reg.c;
-            reg.f = 0;
-            reg.flags.z = (reg.a == 0);
+        case 0xaf: //xor a, a
+            _cpu_xor_rega_r8(&reg.a);
+            break;
+        case 0xb0: //or a, b
+            _cpu_or_rega_r8(&reg.b);
+            break;
+        case 0xb1: //or a, c
+            _cpu_or_rega_r8(&reg.c);
+            break;
+        case 0xb2: //or a, d
+            _cpu_or_rega_r8(&reg.d);
+            break;
+        case 0xb3: //or a, e
+            _cpu_or_rega_r8(&reg.e);
+            break;
+        case 0xb4: //or a, h
+            _cpu_or_rega_r8(&reg.h);
+            break;
+        case 0xb5: //or a, l
+            _cpu_or_rega_r8(&reg.l);
+            break;
+        case 0xb6: //or a, (hl)
+            _cpu_or_rega_mem(reg.hl);
             break;
         case 0xb7: //or a, a
-            reg.a |= reg.a;
-            reg.f = 0;
-            reg.flags.z = (reg.a == 0);
+            _cpu_or_rega_r8(&reg.a);
+            break;
+        case 0xb8: //cp a, b
+            _cpu_compare_rega_r8(&reg.b);
+            break;
+        case 0xb9: //cp a, c
+            _cpu_compare_rega_r8(&reg.c);
+            break;
+        case 0xba: //cp a, d
+            _cpu_compare_rega_r8(&reg.d);
+            break;
+        case 0xbb: //cp a, e
+            _cpu_compare_rega_r8(&reg.e);
+            break;
+        case 0xbc: //cp a, h
+            _cpu_compare_rega_r8(&reg.h);
+            break;
+        case 0xbd: //cp a, l
+            _cpu_compare_rega_r8(&reg.l);
+            break;
+        case 0xbe: // cp a, (hl)
+            _cpu_compare_rega_mem(reg.hl);
+            break;
+        case 0xbf: //cp a, a
+            _cpu_compare_rega_r8(&reg.a);
             break;
         case 0xc1: //pop bc
             reg.bc = pop();
@@ -494,7 +663,7 @@ void GBEmu::cpu_step(){
             reg.a -= u8b;
 
             reg.flags.z = (reg.a == 0);
-            reg.flags.n = 1;
+            reg.flags.n = true;
             reg.flags.h = half_carry_sub(u8a, u8b);
             reg.flags.c = carry_sub(u8a, u8b);
 
@@ -752,10 +921,139 @@ void GBEmu::_cpu_jmp_relative_imm8(void) {
 }
 
 void GBEmu::_cpu_add_rega_r8(uint8_t* r) {
-    uint8_t u8a = *r;
+    uint8_t u8a = reg.a;
     reg.a += *r;
     reg.flags.z = (reg.a == 0);
     reg.flags.n = false;
     reg.flags.h = half_carry_add(u8a, *r);
     reg.flags.c = carry_add(u8a, *r);
+}
+
+void GBEmu::_cpu_add_rega_r8_carry(uint8_t* r) {
+    uint8_t u8a = reg.a;
+    uint8_t u8b = *r + reg.flags.c;
+    reg.a += u8b;
+    reg.flags.z = (reg.a == 0);
+    reg.flags.n = false;
+    reg.flags.h = half_carry_add(u8a, u8b);
+    reg.flags.c = carry_add(u8a, u8b);
+}
+
+void GBEmu::_cpu_add_rega_mem(uint16_t addr) {
+    uint8_t u8a = reg.a;
+    uint8_t u8b = read_mem(addr);
+    reg.a += u8b;
+    reg.flags.z = (reg.a == 0);
+    reg.flags.n = false;
+    reg.flags.h = half_carry_add(u8a, u8b);
+    reg.flags.c = carry_add(u8a, u8b);
+}
+
+void GBEmu::_cpu_add_rega_mem_carry(uint16_t addr) {
+    uint8_t u8a = reg.a;
+    uint8_t u8b = read_mem(addr) + reg.flags.c;
+    reg.a += u8b;
+    reg.flags.z = (reg.a == 0);
+    reg.flags.n = false;
+    reg.flags.h = half_carry_add(u8a, u8b);
+    reg.flags.c = carry_add(u8a, u8b);
+}
+
+void GBEmu::_cpu_sub_rega_r8(uint8_t* r) {
+    uint8_t u8a = reg.a;
+    reg.a -= *r;
+
+    reg.flags.z = (reg.a == 0);
+    reg.flags.n = true;
+    reg.flags.h = half_carry_sub(u8a, *r);
+    reg.flags.c = carry_sub(u8a, *r);
+}
+
+void GBEmu::_cpu_sub_rega_mem(uint16_t addr) {
+    uint8_t u8a = reg.a;
+    uint8_t u8b = read_mem(addr);
+    reg.a -= u8b;
+
+    reg.flags.z = (reg.a == 0);
+    reg.flags.n = true;
+    reg.flags.h = half_carry_sub(u8a, u8b);
+    reg.flags.c = carry_sub(u8a, u8b);
+}
+
+void GBEmu::_cpu_sub_rega_r8_carry(uint8_t* r) {
+    uint8_t u8a = reg.a;
+    uint8_t u8b = *r + reg.flags.c;
+    reg.a -= u8b;
+
+    reg.flags.z = (reg.a == 0);
+    reg.flags.n = true;
+    reg.flags.h = half_carry_sub(u8a, u8b);
+    reg.flags.c = carry_sub(u8a, u8b);
+}
+
+void GBEmu::_cpu_sub_rega_mem_carry(uint16_t addr) {
+    uint8_t u8a = reg.a;
+    uint8_t u8b = read_mem(addr) + reg.flags.c;
+    reg.a -= u8b;
+
+    reg.flags.z = (reg.a == 0);
+    reg.flags.n = true;
+    reg.flags.h = half_carry_sub(u8a, u8b);
+    reg.flags.c = carry_sub(u8a, u8b);
+}
+
+void GBEmu::_cpu_and_rega_r8(uint8_t* r) {
+    reg.a &= *r;
+    reg.flags.z = (reg.a == 0);
+    reg.flags.n = false;
+    reg.flags.h = true;
+    reg.flags.c = false;
+}
+
+void GBEmu::_cpu_and_rega_mem(uint16_t addr) {
+    reg.a &= read_mem(addr);
+    reg.flags.z = (reg.a == 0);
+    reg.flags.n = false;
+    reg.flags.h = true;
+    reg.flags.c = false;
+}
+
+void GBEmu::_cpu_xor_rega_r8(uint8_t* r) {
+    reg.a ^= *r;
+    reg.f = 0;
+    reg.flags.z = (reg.a == 0);
+}
+
+void GBEmu::_cpu_xor_rega_mem(uint16_t addr) {
+    reg.a ^= read_mem(addr);
+    reg.f = 0;
+    reg.flags.z = (reg.a == 0);
+}
+
+
+void GBEmu::_cpu_or_rega_r8(uint8_t* r) {
+    reg.a |= *r;
+    reg.f = 0;
+    reg.flags.z = (reg.a == 0);
+}
+
+void GBEmu::_cpu_or_rega_mem(uint16_t addr) {
+    reg.a |= read_mem(addr);
+    reg.f = 0;
+    reg.flags.z = (reg.a == 0);
+}
+
+void GBEmu::_cpu_compare_rega_r8(uint8_t* r) {
+    reg.flags.z = (reg.a == *r);
+    reg.flags.n = true;
+    reg.flags.h = half_carry_sub(reg.a, *r); //REVIEW
+    reg.flags.c = (reg.a < *r);
+}
+
+void GBEmu::_cpu_compare_rega_mem(uint16_t addr) {
+    uint8_t u8a = read_mem(addr);
+    reg.flags.z = (reg.a == u8a);
+    reg.flags.n = true;
+    reg.flags.h = half_carry_sub(reg.a, u8a); //REVIEW
+    reg.flags.c = (reg.a < u8a);
 }

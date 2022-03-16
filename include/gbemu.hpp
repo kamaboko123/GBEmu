@@ -354,6 +354,21 @@ private:
     void _cpu_ld_mem_imm8(uint16_t addr);
     void _cpu_jmp_relative_imm8(void);
     void _cpu_add_rega_r8(uint8_t* r);
+    void _cpu_add_rega_r8_carry(uint8_t* r);
+    void _cpu_add_rega_mem(uint16_t addr);
+    void _cpu_add_rega_mem_carry(uint16_t addr);
+    void _cpu_sub_rega_r8(uint8_t* r);
+    void _cpu_sub_rega_r8_carry(uint8_t* r);
+    void _cpu_sub_rega_mem(uint16_t addr);
+    void _cpu_sub_rega_mem_carry(uint16_t addr);
+    void _cpu_and_rega_r8(uint8_t* r);
+    void _cpu_and_rega_mem(uint16_t addr);
+    void _cpu_xor_rega_r8(uint8_t* r);
+    void _cpu_xor_rega_mem(uint16_t addr);
+    void _cpu_or_rega_r8(uint8_t* r);
+    void _cpu_or_rega_mem(uint16_t addr);
+    void _cpu_compare_rega_r8(uint8_t* r);
+    void _cpu_compare_rega_mem(uint16_t addr);
 
    public:
     GBEmu();
