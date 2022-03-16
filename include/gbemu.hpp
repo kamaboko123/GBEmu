@@ -347,7 +347,7 @@ private:
     void _cpu_rotate_right_carry_r8(uint8_t* r);
     void _cpu_rotate_left_r8(uint8_t* r);
     void _cpu_rotate_right_r8(uint8_t* r);
-    bool _cpu_jmp_if_imm8(bool flg);
+    bool _cpu_jmp_if_relative_imm8(bool flg);
     void _cpu_complement_r8(uint8_t* r);
     void _cpu_inc_mem(uint16_t addr);
     void _cpu_dec_mem(uint16_t addr);
@@ -369,6 +369,9 @@ private:
     void _cpu_or_rega_mem(uint16_t addr);
     void _cpu_compare_rega_r8(uint8_t* r);
     void _cpu_compare_rega_mem(uint16_t addr);
+    bool _cpu_ret_if(bool flg);
+    bool _cpu_jmp_if_imm16(bool flg);
+    bool _cpu_call_if_imm16(bool flg);
 
    public:
     GBEmu();
