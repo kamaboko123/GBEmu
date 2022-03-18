@@ -75,7 +75,7 @@ void GBEmu::display_win_debug_gui(void)
     }
 
     {
-        bool lcdc[8];
+        bool lcdc[8] = {0};
         lcdc[0] = ((IO_LCD_LCDC *)ram + IO_REG::LCDC)->bg_enable;
         lcdc[1] = ((IO_LCD_LCDC *)ram + IO_REG::LCDC)->obj_enable;
         lcdc[2] = ((IO_LCD_LCDC *)ram + IO_REG::LCDC)->obj_size;
