@@ -384,6 +384,14 @@ private:
     void _cpu_ex_rotate_left_carry_mem(uint16_t addr);
     void _cpu_ex_rotate_right_carry_r8(uint8_t* r);
     void _cpu_ex_rotate_right_carry_mem(uint16_t addr);
+    void _cpu_ex_shift_left_r8(uint8_t* r);
+    void _cpu_ex_shift_left_mem(uint16_t addr);
+    void _cpu_ex_shift_right_arith_r8(uint8_t* r);
+    void _cpu_ex_shift_right_arith_mem(uint16_t addr);
+    void _cpu_ex_swap_r8(uint8_t* r);
+    void _cpu_ex_swap_mem(uint16_t addr);
+    void _cpu_ex_shift_right_r8(uint8_t* r);
+    void _cpu_ex_shift_right_mem(uint16_t addr);
 
    public:
     GBEmu();
