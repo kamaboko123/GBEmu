@@ -376,6 +376,15 @@ private:
     void _cpu_add_r16_imm8s(uint16_t* r);
     void _cpu_daa(void);
 
+    void _cpu_ex_rotate_left_r8(uint8_t* r);
+    void _cpu_ex_rotate_left_mem(uint16_t addr);
+    void _cpu_ex_rotate_right_r8(uint8_t* r);
+    void _cpu_ex_rotate_right_mem(uint16_t addr);
+    void _cpu_ex_rotate_left_carry_r8(uint8_t* r);
+    void _cpu_ex_rotate_left_carry_mem(uint16_t addr);
+    void _cpu_ex_rotate_right_carry_r8(uint8_t* r);
+    void _cpu_ex_rotate_right_carry_mem(uint16_t addr);
+
    public:
     GBEmu();
     ~GBEmu();

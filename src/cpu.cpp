@@ -846,6 +846,103 @@ void GBEmu::cpu_step(){
 void GBEmu::instrs_pfx_0xcb(uint8_t* opcode) {
     *opcode = read_mem(reg.pc + 1);
     switch (*opcode) {
+    case 0x00: //rlc b
+        _cpu_ex_rotate_left_r8(&reg.b);
+        break;
+    case 0x01: //rlc c
+        _cpu_ex_rotate_left_r8(&reg.c);
+        break;
+    case 0x02: //rlc d
+        _cpu_ex_rotate_left_r8(&reg.d);
+        break;
+    case 0x03: //rlc e
+        _cpu_ex_rotate_left_r8(&reg.e);
+        break;
+    case 0x04: //rlc h
+        _cpu_ex_rotate_left_r8(&reg.h);
+        break;
+    case 0x05: //rlc l
+        _cpu_ex_rotate_left_r8(&reg.l);
+        break;
+    case 0x06: //rlc (hl)
+        _cpu_ex_rotate_left_mem(reg.hl);
+        break;
+    case 0x07: //rlc a
+        _cpu_ex_rotate_left_r8(&reg.a);
+        break;
+    case 0x08: //rrc b
+        _cpu_ex_rotate_right_r8(&reg.b);
+        break;
+    case 0x09: //rrc c
+        _cpu_ex_rotate_right_r8(&reg.c);
+        break;
+    case 0x0a: //rrc d
+        _cpu_ex_rotate_right_r8(&reg.d);
+        break;
+    case 0x0b: //rrc e
+        _cpu_ex_rotate_right_r8(&reg.e);
+        break;
+    case 0x0c: //rrc h
+        _cpu_ex_rotate_right_r8(&reg.h);
+        break;
+    case 0x0d: //rrc l
+        _cpu_ex_rotate_right_r8(&reg.l);
+        break;
+    case 0x0e: //rrc (hl)
+        _cpu_ex_rotate_right_mem(reg.hl);
+        break;
+    case 0x0f: //rrc a
+        _cpu_ex_rotate_right_r8(&reg.a);
+        break;
+    case 0x10: //rl b
+        _cpu_ex_rotate_left_carry_r8(&reg.b);
+        break;
+    case 0x11: //rl c
+        _cpu_ex_rotate_left_carry_r8(&reg.c);
+        break;
+    case 0x12: //rl d
+        _cpu_ex_rotate_left_carry_r8(&reg.d);
+        break;
+    case 0x13: //rl e
+        _cpu_ex_rotate_left_carry_r8(&reg.e);
+        break;
+    case 0x14: //rl h
+        _cpu_ex_rotate_left_carry_r8(&reg.h);
+        break;
+    case 0x15: //rl l
+        _cpu_ex_rotate_left_carry_r8(&reg.l);
+        break;
+    case 0x16: //rl (hl)
+        _cpu_ex_rotate_left_carry_mem(reg.hl);
+        break;
+    case 0x17: //rl a
+        _cpu_ex_rotate_left_carry_r8(&reg.a);
+        break;
+    case 0x18: //rr b
+        _cpu_ex_rotate_right_carry_r8(&reg.b);
+        break;
+    case 0x19: //rr c
+        _cpu_ex_rotate_right_carry_r8(&reg.c);
+        break;
+    case 0x1a: //rr d
+        _cpu_ex_rotate_right_carry_r8(&reg.d);
+        break;
+    case 0x1b: //rr e
+        _cpu_ex_rotate_right_carry_r8(&reg.e);
+        break;
+    case 0x1c: //rr h
+        _cpu_ex_rotate_right_carry_r8(&reg.h);
+        break;
+    case 0x1d: //rr l
+        _cpu_ex_rotate_right_carry_r8(&reg.l);
+        break;
+    case 0x1e: //rr (hl)
+        _cpu_ex_rotate_right_carry_mem(reg.hl);
+        break;
+    case 0x1f: //rr a
+        _cpu_ex_rotate_right_carry_r8(&reg.a);
+        break;
+
     case 0x38://srl b
         reg.f = 0;
         reg.flags.c = clib::getBit(reg.b, 0);
@@ -1226,4 +1323,72 @@ void GBEmu::_cpu_daa(void) { //REVIEW
     if (carry) {
         reg.flags.c = true;
     }
+}
+
+void GBEmu::_cpu_ex_rotate_left_r8(uint8_t* r) {
+    reg.f = 0;
+    reg.flags.c = clib::getBit(*r, 7);
+    *r = (*r << 1) + reg.flags.c;
+    reg.flags.z = (*r == 0);
+}
+
+void GBEmu::_cpu_ex_rotate_left_mem(uint16_t addr) {
+    uint8_t byte = read_mem(addr);
+    reg.f = 0;
+    reg.flags.c = clib::getBit(byte, 7);
+    byte = (byte << 1) + reg.flags.c;
+    reg.flags.z = (byte == 0);
+    write_mem(addr, byte);
+}
+
+void GBEmu::_cpu_ex_rotate_right_r8(uint8_t* r) {
+    reg.f = 0;
+    reg.flags.c = clib::getBit(*r, 0);
+    *r = (*r >> 1) + (reg.flags.c << 7);
+    reg.flags.z = (*r == 0);
+}
+
+void GBEmu::_cpu_ex_rotate_right_mem(uint16_t addr) {
+    uint8_t byte = read_mem(addr);
+    reg.f = 0;
+    reg.flags.c = clib::getBit(byte, 0);
+    byte = (byte >> 1) + (reg.flags.c << 7);
+    reg.flags.z = (byte == 0);
+    write_mem(addr, byte);
+}
+
+void GBEmu::_cpu_ex_rotate_left_carry_r8(uint8_t* r) {
+    uint8_t old_c = reg.flags.c;
+    reg.f = 0;
+    reg.flags.c = clib::getBit(*r, 7);
+    *r = (*r << 1) + old_c;
+    reg.flags.z = (*r == 0);
+}
+
+void GBEmu::_cpu_ex_rotate_left_carry_mem(uint16_t addr) {
+    uint8_t byte = read_mem(addr);
+    uint8_t old_c = reg.flags.c;
+    reg.f = 0;
+    reg.flags.c = clib::getBit(byte, 7);
+    byte = (byte << 1) + old_c;
+    reg.flags.z = (byte == 0);
+    write_mem(addr, byte);
+}
+
+void GBEmu::_cpu_ex_rotate_right_carry_r8(uint8_t* r) {
+    uint8_t old_c = reg.flags.c;
+    reg.f = 0;
+    reg.flags.c = clib::getBit(*r, 0);
+    *r = (*r >> 1) + (old_c << 7);
+    reg.flags.z = (*r == 0);
+}
+
+void GBEmu::_cpu_ex_rotate_right_carry_mem(uint16_t addr) {
+    uint8_t byte = read_mem(addr);
+    uint8_t old_c = reg.flags.c;
+    reg.f = 0;
+    reg.flags.c = clib::getBit(byte, 0);
+    byte = (byte >> 1) + (old_c << 7);
+    reg.flags.z = (byte == 0);
+    write_mem(addr, byte);
 }
